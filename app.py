@@ -1,4 +1,5 @@
 import streamlit as st
+
 from cyberphishing_engine import (
     analyze_message_and_urls,
     scan_qr_file
@@ -86,18 +87,21 @@ if st.button(
                 col1, col2, col3 = st.columns(3)
 
                 with col1:
+
                     st.metric(
                         "Status",
                         message_report["status"]
                     )
 
                 with col2:
+
                     st.metric(
                         "Risk Level",
                         message_report["risk_level"]
                     )
 
                 with col3:
+
                     st.metric(
                         "Risk Score",
                         f'{message_report["risk_score"]} / 100'
@@ -276,7 +280,10 @@ if qr_file is not None:
 
         try:
 
-            # Save uploaded image temporarily
+            # --------------------------------------------
+            # SAVE UPLOADED IMAGE TEMPORARILY
+            # --------------------------------------------
+
             temp_filename = "uploaded_qr.png"
 
             with open(temp_filename, "wb") as f:
@@ -383,7 +390,7 @@ if qr_file is not None:
                             + ", ".join(brands)
                         )
 
-                    # Indicators
+                    # URL indicators
 
                     indicators = analysis[
                         "detected_indicators"
@@ -404,6 +411,7 @@ if qr_file is not None:
                     st.info(
                         analysis["recommendation"]
                     )
+
 
                 # ==================================================
                 # UPI QR
@@ -527,6 +535,7 @@ if qr_file is not None:
                             "No suspicious UPI indicators detected."
                         )
 
+
                 # ==================================================
                 # TEXT QR
                 # ==================================================
@@ -595,6 +604,7 @@ if qr_file is not None:
                             analysis["recommendation"]
                         )
 
+
                 # ==================================================
                 # EMAIL QR
                 # ==================================================
@@ -602,26 +612,133 @@ if qr_file is not None:
                 elif payload_type == "EMAIL":
 
                     st.subheader(
-                        "📧 Email QR Payload"
+                        "📧 Email QR Analysis"
                     )
 
-                    st.info(
-                        analysis.get(
-                            "status",
-                            "Email QR Payload Detected"
+                    # ----------------------------------------
+                    # EMAIL RISK SUMMARY
+                    # ----------------------------------------
+
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+
+                        st.metric(
+                            "Status",
+                            analysis.get(
+                                "status",
+                                "Email QR Payload Detected"
+                            )
                         )
+
+                    with col2:
+
+                        st.metric(
+                            "Risk Level",
+                            analysis.get(
+                                "risk_level",
+                                "Unknown"
+                            )
+                        )
+
+                    with col3:
+
+                        st.metric(
+                            "Risk Score",
+                            f'{analysis.get("risk_score", 0)} / 100'
+                        )
+
+                    # ----------------------------------------
+                    # EMAIL DETAILS
+                    # ----------------------------------------
+
+                    email_details = analysis.get(
+                        "email_details",
+                        {}
                     )
 
-                    st.code(
-                        payload,
-                        language=None
+                    if email_details:
+
+                        st.subheader(
+                            "📧 Email Details"
+                        )
+
+                        email_col1, email_col2 = st.columns(2)
+
+                        with email_col1:
+
+                            st.write(
+                                "**Email Address:**"
+                            )
+
+                            st.code(
+                                email_details.get(
+                                    "email",
+                                    "Not provided"
+                                )
+                            )
+
+                            st.write(
+                                "**Subject:**"
+                            )
+
+                            st.write(
+                                email_details.get(
+                                    "subject",
+                                    "No subject"
+                                )
+                            )
+
+                        with email_col2:
+
+                            st.write(
+                                "**Body:**"
+                            )
+
+                            st.write(
+                                email_details.get(
+                                    "body",
+                                    "No body"
+                                )
+                            )
+
+                    # ----------------------------------------
+                    # EMAIL THREAT INDICATORS
+                    # ----------------------------------------
+
+                    indicators = analysis.get(
+                        "detected_indicators",
+                        []
                     )
+
+                    if indicators:
+
+                        st.warning(
+                            "⚠️ Detected Email Threat Indicators"
+                        )
+
+                        for indicator in indicators:
+
+                            st.write(
+                                f"• {indicator}"
+                            )
+
+                    else:
+
+                        st.success(
+                            "No suspicious email indicators detected."
+                        )
+
+                    # ----------------------------------------
+                    # EMAIL RECOMMENDATION
+                    # ----------------------------------------
 
                     if "recommendation" in analysis:
 
                         st.info(
                             analysis["recommendation"]
                         )
+
 
                 # ==================================================
                 # PHONE QR
@@ -650,6 +767,7 @@ if qr_file is not None:
                         st.info(
                             analysis["recommendation"]
                         )
+
 
                 # ==================================================
                 # UNKNOWN
