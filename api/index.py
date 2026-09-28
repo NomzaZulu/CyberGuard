@@ -26,7 +26,7 @@ app = FastAPI(
 # ROOT
 # ============================================================
 
-@app.get("/")
+@app.get("/api")
 def root():
 
     return {
@@ -39,7 +39,7 @@ def root():
 # HEALTH CHECK
 # ============================================================
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
 
     return {
@@ -51,7 +51,7 @@ def health():
 # MESSAGE ANALYSIS
 # ============================================================
 
-@app.post("/analyze/message")
+@app.post("/api/analyze/message")
 def analyze_message(data: dict):
 
     message = data.get(
@@ -74,7 +74,7 @@ def analyze_message(data: dict):
 # URL ANALYSIS
 # ============================================================
 
-@app.post("/analyze/url")
+@app.post("/api/analyze/url")
 def analyze_url(data: dict):
 
     url = data.get(
@@ -97,7 +97,7 @@ def analyze_url(data: dict):
 # FRAUDULENT WEBSITE ANALYSIS
 # ============================================================
 
-@app.post("/analyze/website")
+@app.post("/api/analyze/website")
 def analyze_website(data: dict):
 
     url = data.get(
@@ -120,13 +120,13 @@ def analyze_website(data: dict):
 # QR CODE ANALYSIS
 # ============================================================
 
-@app.post("/analyze/qr")
+@app.post("/api/analyze/qr")
 async def analyze_qr(
     file: UploadFile = File(...)
 ):
 
     suffix = os.path.splitext(
-        file.filename
+        file.filename or ""
     )[1] or ".png"
 
     temp_file = tempfile.NamedTemporaryFile(
@@ -162,10 +162,10 @@ async def analyze_qr(
 
 
 # ============================================================
-# DIGITAL IMPERSONATION ANALYSIS
+# DIGITAL IMPERSONATION
 # ============================================================
 
-@app.post("/analyze/impersonation")
+@app.post("/api/analyze/impersonation")
 def analyze_impersonation(data: dict):
 
     claimed_identity = data.get(
