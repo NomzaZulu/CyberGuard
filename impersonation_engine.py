@@ -1,5 +1,6 @@
 # ============================================================
-# CYBERGUARD - DIGITAL IMPERSONATION DETECTION
+# CYBERGUARD
+# DIGITAL IMPERSONATION DETECTION ENGINE
 # ============================================================
 
 import os
@@ -9,452 +10,89 @@ from supabase import create_client
 
 
 # ============================================================
-# SUPABASE CONNECTION
+# 1. SUPABASE CONFIGURATION
 # ============================================================
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase = None
 
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(
-        SUPABASE_URL,
-        SUPABASE_KEY
+if not SUPABASE_URL or not SUPABASE_KEY:
+
+    raise RuntimeError(
+        "SUPABASE_URL and SUPABASE_KEY environment "
+        "variables are required."
     )
 
 
-# ============================================================
-# BASIC TEXT ANALYSIS
-# ============================================================
-
-def detect_impersonation_indicators(message):
-
-    text = message.lower()
-
-    indicators = []
-
-    urgency_terms = [
-        "urgent",
-        "immediately",
-        "act now",
-        "within",
-        "as soon as possible",
-        "last warning",
-        "account will be blocked",
-        "account will be suspended"
-    ]
-
-    credential_terms = [
-        "password",
-        "otp",
-        "one time password",
-        "pin",
-        "cvv",
-        "verification code",
-        "login details",
-        "bank details",
-        "card details"
-    ]
-
-    financial_terms = [
-        "send money",
-        "transfer money",
-        "payment",
-        "pay",
-        "fee",
-        "refund",
-        "bank account",
-        "upi"
-    ]
-
-    authority_terms = [
-        "principal",
-        "director",
-        "professor",
-        "teacher",
-        "manager",
-        "ceo",
-        "government officer",
-        "official",
-        "bank manager",
-        "administrator"
-    ]
-
-    for term in urgency_terms:
-
-        if term in text:
-
-            indicators.append(
-                f"Urgency or pressure detected: {term}"
-            )
-
-    for term in credential_terms:
-
-        if term in text:
-
-            indicators.append(
-                f"Sensitive-information request: {term}"
-            )
-
-    for term in financial_terms:
-
-        if term in text:
-
-            indicators.append(
-                f"Financial-related request: {term}"
-            )
-
-    for term in authority_terms:
-
-        if term in text:
-
-            indicators.append(
-                f"Authority-related language: {term}"
-            )
-
-    return indicators
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
 
 
 # ============================================================
-# COMMUNICATION STYLE ANALYSIS
-# ============================================================
-
-def analyze_communication_style(message):
-
-    text = message.lower()
-
-    score = 0
-    indicators = []
-
-    urgency_words = [
-        "urgent",
-        "immediately",
-        "act now",
-        "hurry",
-        "last warning"
-    ]
-
-    credential_words = [
-        "otp",
-        "password",
-        "pin",
-        "cvv",
-        "verification code"
-    ]
-
-    financial_words = [
-        "payment",
-        "send money",
-        "transfer",
-        "fee",
-        "refund"
-    ]
-
-    urgency_matches = [
-        word for word in urgency_words
-        if word in text
-    ]
-
-    credential_matches = [
-        word for word in credential_words
-        if word in text
-    ]
-
-    financial_matches = [
-        word for word in financial_words
-        if word in text
-    ]
-
-    if urgency_matches:
-
-        score += 20
-
-        indicators.append(
-            "Pressure or urgency in communication"
-        )
-
-    if credential_matches:
-
-        score += 30
-
-        indicators.append(
-            "Request for sensitive credentials"
-        )
-
-    if financial_matches:
-
-        score += 25
-
-        indicators.append(
-            "Financial request detected"
-        )
-
-    if text.count("!") >= 3:
-
-        score += 5
-
-        indicators.append(
-            "Excessive use of exclamation marks"
-        )
-
-    if len(message) < 25:
-
-        score += 5
-
-        indicators.append(
-            "Very short communication"
-        )
-
-    return {
-        "score": min(score, 100),
-        "indicators": indicators
-    }
-
-
-# ============================================================
-# EMAIL / DOMAIN ANALYSIS
-# ============================================================
-
-def analyze_sender(sender_email):
-
-    if not sender_email:
-
-        return {
-            "valid": False,
-            "domain": "",
-            "local_part": "",
-        }
-
-    sender_email = sender_email.strip().lower()
-
-    match = re.match(
-        r"^([^@\s]+)@([^@\s]+\.[^@\s]+)$",
-        sender_email
-    )
-
-    if not match:
-
-        return {
-            "valid": False,
-            "domain": "",
-            "local_part": "",
-        }
-
-    return {
-        "valid": True,
-        "domain": match.group(2),
-        "local_part": match.group(1)
-    }
-
-
-# ============================================================
-# TRUSTED IDENTITY LOOKUP
+# 2. FIND TRUSTED IDENTITY
 # ============================================================
 
 def find_trusted_identity(
-    claimed_identity,
-    sender_email=None
+    claimed_identity="",
+    sender_email=""
 ):
 
-    if supabase is None:
-
-        return {
-            "found": False,
-            "error": "Supabase is not configured"
-        }
-
-    query = supabase \
-        .table("trusted_identities") \
-        .select("*")
-
-    if claimed_identity:
-
-        query = query.ilike(
-            "organization",
-            f"%{claimed_identity}%"
-        )
-
-    result = query.execute()
-
-    records = result.data or []
-
-    sender_info = analyze_sender(
-        sender_email
-    )
-
     # --------------------------------------------------------
-    # Try exact domain match first
-    # --------------------------------------------------------
-
-    if sender_info["valid"]:
-
-        sender_domain = sender_info["domain"]
-
-        for record in records:
-
-            official_domain = (
-                record.get("official_domain")
-                or ""
-            ).lower().strip()
-
-            if official_domain == sender_domain:
-
-                return {
-                    "found": True,
-                    "match_type": "domain",
-                    "record": record
-                }
-
-    # --------------------------------------------------------
-    # Try exact official email match
+    # SEARCH BY OFFICIAL EMAIL FIRST
     # --------------------------------------------------------
 
     if sender_email:
 
-        normalized_email = (
-            sender_email.strip().lower()
+        result = (
+            supabase
+            .table("trusted_identities")
+            .select("*")
+            .eq(
+                "official_email",
+                sender_email
+            )
+            .execute()
         )
 
-        for record in records:
+        if result.data:
 
-            official_email = (
-                record.get("official_email")
-                or ""
-            ).lower().strip()
+            return result.data[0]
 
-            if official_email == normalized_email:
-
-                return {
-                    "found": True,
-                    "match_type": "email",
-                    "record": record
-                }
 
     # --------------------------------------------------------
-    # Identity exists but sender did not match
+    # SEARCH BY NAME / IDENTITY
     # --------------------------------------------------------
 
-    if records:
+    if claimed_identity:
 
-        return {
-            "found": True,
-            "match_type": "identity_only",
-            "record": records[0]
-        }
+        result = (
+            supabase
+            .table("trusted_identities")
+            .select("*")
+            .ilike(
+                "name",
+                f"%{claimed_identity}%"
+            )
+            .execute()
+        )
 
-    return {
-        "found": False,
-        "match_type": "none",
-        "record": None
-    }
+        if result.data:
+
+            return result.data[0]
+
+
+    # --------------------------------------------------------
+    # NO MATCH
+    # --------------------------------------------------------
+
+    return None
 
 
 # ============================================================
-# RISK CALCULATION
-# ============================================================
-
-def calculate_impersonation_risk(
-    identity_result,
-    communication_result,
-    sender_email
-):
-
-    score = 0
-    reasons = []
-
-    # --------------------------------------------------------
-    # Identity verification
-    # --------------------------------------------------------
-
-    if not identity_result.get("found"):
-
-        score += 25
-
-        reasons.append(
-            "Claimed identity could not be verified"
-        )
-
-    else:
-
-        match_type = identity_result.get(
-            "match_type"
-        )
-
-        if match_type == "domain":
-
-            reasons.append(
-                "Sender domain matches trusted identity"
-            )
-
-        elif match_type == "email":
-
-            reasons.append(
-                "Sender email matches trusted identity"
-            )
-
-        elif match_type == "identity_only":
-
-            score += 30
-
-            reasons.append(
-                "Claimed identity exists but sender "
-                "could not be matched to the trusted identity"
-            )
-
-    # --------------------------------------------------------
-    # Invalid sender
-    # --------------------------------------------------------
-
-    sender_info = analyze_sender(
-        sender_email
-    )
-
-    if sender_email and not sender_info["valid"]:
-
-        score += 20
-
-        reasons.append(
-            "Sender email format is invalid"
-        )
-
-    # --------------------------------------------------------
-    # Communication style
-    # --------------------------------------------------------
-
-    communication_score = communication_result[
-        "score"
-    ]
-
-    score += communication_score
-
-    reasons.extend(
-        communication_result["indicators"]
-    )
-
-    score = min(score, 100)
-
-    # --------------------------------------------------------
-    # Risk level
-    # --------------------------------------------------------
-
-    if score >= 75:
-
-        risk_level = "High Risk"
-
-    elif score >= 30:
-
-        risk_level = "Medium Risk"
-
-    else:
-
-        risk_level = "Low Risk"
-
-    return score, risk_level, reasons
-
-
-# ============================================================
-# MAIN IMPERSONATION ANALYZER
+# 3. ANALYZE DIGITAL IMPERSONATION
 # ============================================================
 
 def analyze_digital_impersonation(
@@ -463,95 +101,329 @@ def analyze_digital_impersonation(
     message
 ):
 
-    identity_result = find_trusted_identity(
-        claimed_identity,
-        sender_email
-    )
-
-    communication_result = (
-        analyze_communication_style(
-            message
-        )
-    )
-
-    general_indicators = (
-        detect_impersonation_indicators(
-            message
-        )
-    )
-
-    score, risk_level, reasons = (
-        calculate_impersonation_risk(
-            identity_result,
-            communication_result,
-            sender_email
-        )
-    )
-
-    # Remove duplicates
-    all_indicators = []
-
-    for indicator in (
-        general_indicators + reasons
-    ):
-
-        if indicator not in all_indicators:
-
-            all_indicators.append(indicator)
-
     # --------------------------------------------------------
-    # Status
+    # BASIC CLEANING
     # --------------------------------------------------------
 
-    if score >= 75:
+    claimed_identity = (
+        claimed_identity or ""
+    ).strip()
 
-        status = (
-            "Potential Digital Impersonation Detected"
-        )
+    sender_email = (
+        sender_email or ""
+    ).strip()
 
-    elif score >= 30:
+    message = (
+        message or ""
+    ).strip()
 
-        status = (
-            "Suspicious Identity Communication"
-        )
+
+    # --------------------------------------------------------
+    # FIND TRUSTED IDENTITY
+    # --------------------------------------------------------
+
+    identity = find_trusted_identity(
+        claimed_identity=claimed_identity,
+        sender_email=sender_email
+    )
+
+
+    # --------------------------------------------------------
+    # INITIAL VALUES
+    # --------------------------------------------------------
+
+    score = 0
+
+    indicators = []
+
+
+    # ========================================================
+    # 4. TRUSTED IDENTITY FOUND
+    # ========================================================
+
+    if identity:
+
+        official_email = (
+            identity.get(
+                "official_email"
+            ) or ""
+        ).lower().strip()
+
+        official_domain = (
+            identity.get(
+                "official_domain"
+            ) or ""
+        ).lower().strip()
+
+        supplied_email = (
+            sender_email or ""
+        ).lower().strip()
+
+
+        # ====================================================
+        # 5. EMAIL COMPARISON
+        # ====================================================
+
+        if supplied_email:
+
+            if supplied_email != official_email:
+
+                score += 40
+
+                indicators.append(
+                    "Sender email does not match "
+                    "the trusted identity"
+                )
+
+
+            # ------------------------------------------------
+            # DOMAIN COMPARISON
+            # ------------------------------------------------
+
+            if "@" in supplied_email:
+
+                sender_domain = (
+                    supplied_email
+                    .split("@", 1)[1]
+                    .lower()
+                )
+
+                if (
+                    official_domain
+                    and sender_domain
+                    != official_domain
+                ):
+
+                    score += 30
+
+                    indicators.append(
+                        "Sender email domain does not "
+                        "match the organization's "
+                        "official domain"
+                    )
+
+
+    # ========================================================
+    # 6. TRUSTED IDENTITY NOT FOUND
+    # ========================================================
 
     else:
 
-        status = (
-            "No Immediate Impersonation Threat Detected"
+        score += 20
+
+        indicators.append(
+            "Claimed identity was not found "
+            "in the trusted identity database"
         )
 
+
+    # ========================================================
+    # 7. MESSAGE ANALYSIS
+    # ========================================================
+
+    text = message.lower()
+
+
     # --------------------------------------------------------
-    # Recommendation
+    # URGENCY / PRESSURE
     # --------------------------------------------------------
+
+    urgency_terms = [
+
+        "urgent",
+        "immediately",
+        "act now",
+        "within",
+        "expires",
+        "suspended",
+        "blocked",
+        "last warning",
+        "account will be closed",
+        "account has been suspended"
+    ]
+
+
+    matched_urgency = [
+
+        term
+        for term in urgency_terms
+        if term in text
+    ]
+
+
+    if matched_urgency:
+
+        score += 15
+
+        indicators.append(
+            "Urgency or pressure detected: "
+            + ", ".join(
+                matched_urgency
+            )
+        )
+
+
+    # --------------------------------------------------------
+    # CREDENTIAL / SENSITIVE INFORMATION
+    # --------------------------------------------------------
+
+    credential_terms = [
+
+        "password",
+        "otp",
+        "pin",
+        "cvv",
+        "verification code",
+        "one time password",
+        "login",
+        "credit card",
+        "debit card",
+        "bank details"
+    ]
+
+
+    matched_credentials = [
+
+        term
+        for term in credential_terms
+        if term in text
+    ]
+
+
+    if matched_credentials:
+
+        score += 20
+
+        indicators.append(
+            "Sensitive credential-related "
+            "request detected: "
+            + ", ".join(
+                matched_credentials
+            )
+        )
+
+
+    # --------------------------------------------------------
+    # PAYMENT / FINANCIAL REQUEST
+    # --------------------------------------------------------
+
+    payment_terms = [
+
+        "pay",
+        "payment",
+        "transfer",
+        "send money",
+        "fee",
+        "bank account",
+        "upi"
+    ]
+
+
+    matched_payment_terms = [
+
+        term
+        for term in payment_terms
+        if term in text
+    ]
+
+
+    if matched_payment_terms:
+
+        score += 15
+
+        indicators.append(
+            "Financial request detected: "
+            + ", ".join(
+                matched_payment_terms
+            )
+        )
+
+
+    # ========================================================
+    # 8. FINAL SCORE
+    # ========================================================
+
+    score = min(
+        score,
+        100
+    )
+
+
+    # ========================================================
+    # 9. RISK LEVEL
+    # ========================================================
+
+    if score >= 75:
+
+        risk_level = "High Risk"
+
+        status = (
+            "Potential Digital Impersonation"
+        )
+
+
+    elif score >= 40:
+
+        risk_level = "Medium Risk"
+
+        status = (
+            "Suspicious Identity Activity"
+        )
+
+
+    else:
+
+        risk_level = "Low Risk"
+
+        status = (
+            "No Immediate Impersonation Indicators"
+        )
+
+
+    # ========================================================
+    # 10. RECOMMENDATION
+    # ========================================================
 
     if score >= 75:
 
         recommendation = (
-            "Do not trust the communication based solely "
-            "on the claimed identity. Verify the sender "
-            "through an independent official channel "
-            "before taking any action."
+            "Do not trust the communication or "
+            "provide sensitive information. "
+            "Verify the person's identity through "
+            "an independent official channel."
         )
 
-    elif score >= 30:
+
+    elif score >= 40:
 
         recommendation = (
-            "The communication contains characteristics "
-            "associated with possible impersonation. "
-            "Verify the sender independently before "
-            "sharing information or making payments."
+            "The communication contains identity "
+            "or behavioral inconsistencies. "
+            "Verify the sender through an official "
+            "channel before taking action."
         )
+
 
     else:
 
         recommendation = (
-            "No major impersonation indicators were "
-            "detected. Continue to verify unexpected "
-            "communications through trusted channels."
+            "No major impersonation indicators "
+            "were detected. Continue to verify "
+            "unexpected requests independently."
         )
+
+
+    # ========================================================
+    # 11. RETURN CYBERGUARD REPORT
+    # ========================================================
 
     return {
+
+        "status": status,
+
+        "risk_level": risk_level,
+
+        "risk_score": score,
 
         "claimed_identity":
             claimed_identity,
@@ -559,40 +431,14 @@ def analyze_digital_impersonation(
         "sender_email":
             sender_email,
 
-        "status":
-            status,
+        "trusted_identity_found":
+            bool(identity),
 
-        "risk_level":
-            risk_level,
-
-        "risk_score":
-            score,
-
-        "identity_verification": {
-
-            "verified":
-                identity_result.get(
-                    "found",
-                    False
-                ),
-
-            "match_type":
-                identity_result.get(
-                    "match_type",
-                    "none"
-                ),
-
-            "trusted_identity":
-                identity_result.get(
-                    "record"
-                )
-        },
-
-        "communication_analysis":
-            communication_result,
+        "trusted_identity":
+            identity,
 
         "detected_indicators":
-            all_indicators,
+            indicators,
 
         "recommendation":
             recommendation
