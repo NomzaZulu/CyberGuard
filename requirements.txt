@@ -6,3 +6,4 @@ transformers
 torch
 tldextract
 opencv-python-headless
+supabase
