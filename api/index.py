@@ -1,25 +1,16 @@
-import sys
 import os
 import tempfile
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        )
-    )
-)
-
 from fastapi import FastAPI, UploadFile, File
 
-from cyberphishing_engine import (
+from engines.cyberphishing_engine import (
     analyze_message_and_urls,
     create_url_report,
     analyze_fraudulent_website,
     scan_qr_file
 )
 
-from impersonation_engine import (
+from engines.impersonation_engine import (
     analyze_digital_impersonation
 )
 
