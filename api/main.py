@@ -1,5 +1,6 @@
 import sys
 import os
+import tempfile
 
 sys.path.append(
     os.path.dirname(
@@ -8,9 +9,8 @@ sys.path.append(
         )
     )
 )
+
 from fastapi import FastAPI, UploadFile, File
-import tempfile
-import os
 
 from cyberphishing_engine import (
     analyze_message_and_urls,
@@ -19,6 +19,11 @@ from cyberphishing_engine import (
     scan_qr_file
 )
 
+from impersonation_engine import (
+    analyze_digital_impersonation
+)
+
+
 app = FastAPI(
     title="CyberGuard API",
     description="AI-powered cyber threat detection API",
@@ -26,62 +31,108 @@ app = FastAPI(
 )
 
 
+# ============================================================
+# ROOT
+# ============================================================
+
 @app.get("/")
 def root():
+
     return {
         "status": "online",
         "service": "CyberGuard API"
     }
 
 
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
 @app.get("/health")
 def health():
+
     return {
         "status": "healthy"
     }
 
 
+# ============================================================
+# MESSAGE ANALYSIS
+# ============================================================
+
 @app.post("/analyze/message")
 def analyze_message(data: dict):
 
-    message = data.get("message", "").strip()
+    message = data.get(
+        "message",
+        ""
+    ).strip()
 
     if not message:
+
         return {
             "error": "Message is required"
         }
 
-    return analyze_message_and_urls(message)
+    return analyze_message_and_urls(
+        message
+    )
 
+
+# ============================================================
+# URL ANALYSIS
+# ============================================================
 
 @app.post("/analyze/url")
 def analyze_url(data: dict):
 
-    url = data.get("url", "").strip()
+    url = data.get(
+        "url",
+        ""
+    ).strip()
 
     if not url:
+
         return {
             "error": "URL is required"
         }
 
-    return create_url_report(url)
+    return create_url_report(
+        url
+    )
 
+
+# ============================================================
+# FRAUDULENT WEBSITE ANALYSIS
+# ============================================================
 
 @app.post("/analyze/website")
 def analyze_website(data: dict):
 
-    url = data.get("url", "").strip()
+    url = data.get(
+        "url",
+        ""
+    ).strip()
 
     if not url:
+
         return {
             "error": "Website URL is required"
         }
 
-    return analyze_fraudulent_website(url)
+    return analyze_fraudulent_website(
+        url
+    )
 
+
+# ============================================================
+# QR CODE ANALYSIS
+# ============================================================
 
 @app.post("/analyze/qr")
-async def analyze_qr(file: UploadFile = File(...)):
+async def analyze_qr(
+    file: UploadFile = File(...)
+):
 
     suffix = os.path.splitext(
         file.filename
@@ -96,7 +147,10 @@ async def analyze_qr(file: UploadFile = File(...)):
 
         contents = await file.read()
 
-        temp_file.write(contents)
+        temp_file.write(
+            contents
+        )
+
         temp_file.close()
 
         result = scan_qr_file(
@@ -110,6 +164,48 @@ async def analyze_qr(file: UploadFile = File(...)):
         if os.path.exists(
             temp_file.name
         ):
+
             os.remove(
                 temp_file.name
             )
+
+
+# ============================================================
+# DIGITAL IMPERSONATION ANALYSIS
+# ============================================================
+
+@app.post("/analyze/impersonation")
+def analyze_impersonation(data: dict):
+
+    claimed_identity = data.get(
+        "claimed_identity",
+        ""
+    ).strip()
+
+    sender_email = data.get(
+        "sender_email",
+        ""
+    ).strip()
+
+    message = data.get(
+        "message",
+        ""
+    ).strip()
+
+    if not claimed_identity:
+
+        return {
+            "error": "Claimed identity is required"
+        }
+
+    if not message:
+
+        return {
+            "error": "Message is required"
+        }
+
+    return analyze_digital_impersonation(
+        claimed_identity=claimed_identity,
+        sender_email=sender_email,
+        message=message
+    )
