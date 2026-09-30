@@ -1,48 +1,49 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
 
-```
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<meta
-    name="description"
-    content="CyberGuard — AI-powered threat intelligence and cyber threat detection."
->
+    <meta
+        name="description"
+        content="CyberGuard — AI-powered threat intelligence and cyber threat detection."
+    >
 
-<title>CyberGuard — Threat Intelligence</title>
+    <title>CyberGuard — Threat Intelligence</title>
 
-<!-- Google Font -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- Google Font -->
 
-<link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
 
-<link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet"
->
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
 
-<!-- CSS -->
-<link
-    rel="stylesheet"
-    href="style.css"
->
-```
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- CSS -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
 </head>
 
+
 <body>
+
 
 <!-- =====================================================
      NAVBAR
@@ -50,73 +51,80 @@
 
 <header class="navbar">
 
-```
-<div class="navbar-inner">
+    <div class="navbar-inner">
 
-    <a
-        href="#home"
-        class="logo"
-        onclick="showPage('home')"
-    >
-
-        <span class="logo-main">
-            CYBERGUARD
-        </span>
-
-        <span class="logo-sub">
-            THREAT INTELLIGENCE
-        </span>
-
-    </a>
-
-
-    <nav class="nav-links">
+        <!-- LOGO -->
 
         <a
-            href="#features"
+            href="#home"
+            class="logo"
             onclick="showPage('home')"
         >
-            Features
+
+            <span class="logo-main">
+                CYBERGUARD
+            </span>
+
+            <span class="logo-sub">
+                THREAT INTELLIGENCE
+            </span>
+
         </a>
 
-        <a
-            href="#how-it-works"
-            onclick="showPage('home')"
-        >
-            How it works
-        </a>
 
-        <a
-            href="#modules"
+        <!-- NAVIGATION -->
+
+        <nav class="nav-links">
+
+            <a
+                href="#features"
+                onclick="showPage('home')"
+            >
+                Features
+            </a>
+
+            <a
+                href="#how-it-works"
+                onclick="showPage('home')"
+            >
+                How it works
+            </a>
+
+            <a
+                href="#modules"
+                onclick="showPage('modules')"
+            >
+                Detection
+            </a>
+
+        </nav>
+
+
+        <!-- SCANNER BUTTON -->
+
+        <button
+            class="nav-button"
             onclick="showPage('modules')"
         >
-            Detection
-        </a>
 
-    </nav>
+            Open Scanner
 
+            <span>→</span>
 
-    <button
-        class="nav-button"
-        onclick="showPage('modules')"
-    >
+        </button>
 
-        Open Scanner
-
-        <span>→</span>
-
-    </button>
-
-</div>
-```
+    </div>
 
 </header>
+
+
 
 <!-- =====================================================
      MAIN
 ===================================================== -->
 
 <main>
+
 
 <!-- =====================================================
      PAGE 1 — LANDING PAGE
@@ -127,368 +135,425 @@
     class="page active-page"
 >
 
-```
-<div class="hero">
 
-    <div class="container">
+    <!-- HERO -->
 
-        <div class="hero-content">
+    <div class="hero">
 
-            <div class="hero-badge">
-                CYBERGUARD SYSTEM ONLINE
+        <div class="container">
+
+
+            <div class="hero-content">
+
+
+                <div class="hero-badge">
+
+                    CYBERGUARD SYSTEM ONLINE
+
+                </div>
+
+
+                <h1>
+
+                    Detect the threat.
+
+                    <br>
+
+                    <span class="highlight">
+                        Understand the attack.
+                    </span>
+
+                </h1>
+
+
+                <p class="hero-description">
+
+                    CyberGuard analyzes suspicious messages,
+                    URLs, QR codes and websites to identify
+                    phishing, impersonation and account
+                    takeover threats.
+
+                </p>
+
+
+                <div class="hero-actions">
+
+
+                    <button
+                        class="btn btn-primary"
+                        onclick="showPage('modules')"
+                    >
+
+                        Start Analysis
+
+                        <span>→</span>
+
+                    </button>
+
+
+                    <a
+                        href="#how-it-works"
+                        class="btn btn-secondary"
+                    >
+
+                        How it works
+
+                    </a>
+
+
+                </div>
+
             </div>
 
-            <h1>
 
-                Detect the threat.
 
+            <!-- LIVE TERMINAL -->
+
+            <div class="analysis-window">
+
+
+                <div class="analysis-header">
+
+
+                    <div class="window-dots">
+
+                        <span></span>
+                        <span></span>
+                        <span></span>
+
+                    </div>
+
+
+                    <div class="analysis-title">
+
+                        CYBERGUARD / LIVE_ANALYSIS
+
+                    </div>
+
+                </div>
+
+
+                <div class="analysis-body">
+
+
+                    <div class="terminal-line">
+
+                        <span class="terminal-prefix">
+                            >
+                        </span>
+
+                        initializing threat engine...
+
+                    </div>
+
+
+                    <div class="terminal-line success">
+
+                        ✓ phishing engine online
+
+                    </div>
+
+
+                    <div class="terminal-line success">
+
+                        ✓ identity engine online
+
+                    </div>
+
+
+                    <div class="terminal-line success">
+
+                        ✓ URL analysis engine online
+
+                    </div>
+
+
+                    <div class="terminal-line success">
+
+                        ✓ QR analysis engine online
+
+                    </div>
+
+
+                    <div class="terminal-line">
+
+                        <span class="terminal-prefix">
+                            >
+                        </span>
+
+                        loading threat intelligence...
+
+                    </div>
+
+
+                    <div class="terminal-line success">
+
+                        ✓ system ready
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- FEATURES -->
+
+    <section
+        id="features"
+        class="landing-section"
+    >
+
+        <div class="container">
+
+
+            <div class="section-label">
+                CAPABILITIES
+            </div>
+
+
+            <h2 class="section-title">
+
+                One system.
                 <br>
+                Multiple attack surfaces.
 
-                <span class="highlight">
-                    Understand the attack.
-                </span>
+            </h2>
 
-            </h1>
 
-            <p class="hero-description">
+            <p class="section-description">
 
-                CyberGuard analyzes suspicious messages,
-                URLs, QR codes and websites to identify
-                phishing, impersonation and account
-                takeover threats.
+                CyberGuard combines machine-learning
+                analysis, URL inspection, QR extraction
+                and rule-based threat indicators into
+                one security workflow.
 
             </p>
 
-            <div class="hero-actions">
+
+            <div class="features-grid">
+
+
+                <article class="feature-card">
+
+                    <div class="feature-icon">
+                        ◈
+                    </div>
+
+                    <h3>
+                        Phishing Detection
+                    </h3>
+
+                    <p>
+
+                        Analyze suspicious emails,
+                        messages, social-media content,
+                        QR codes and URLs.
+
+                    </p>
+
+                </article>
+
+
+                <article class="feature-card">
+
+                    <div class="feature-icon">
+                        ◎
+                    </div>
+
+                    <h3>
+                        Account Security
+                    </h3>
+
+                    <p>
+
+                        Identify abnormal authentication
+                        and suspicious account behaviour.
+
+                    </p>
+
+                </article>
+
+
+                <article class="feature-card">
+
+                    <div class="feature-icon">
+                        ⌁
+                    </div>
+
+                    <h3>
+                        URL Intelligence
+                    </h3>
+
+                    <p>
+
+                        Examine domains, redirects,
+                        spoofing patterns and suspicious
+                        website characteristics.
+
+                    </p>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- HOW IT WORKS -->
+
+    <section
+        id="how-it-works"
+        class="landing-section"
+    >
+
+        <div class="container">
+
+
+            <div class="section-label">
+                WORKFLOW
+            </div>
+
+
+            <h2 class="section-title">
+
+                From suspicious input
+                to threat report.
+
+            </h2>
+
+
+            <div class="steps">
+
+
+                <article class="step">
+
+                    <div class="step-number">
+                        01 / INPUT
+                    </div>
+
+                    <h3>
+                        Submit
+                    </h3>
+
+                    <p>
+
+                        Enter text, paste a URL or
+                        upload supported content.
+
+                    </p>
+
+                </article>
+
+
+                <article class="step">
+
+                    <div class="step-number">
+                        02 / ANALYSIS
+                    </div>
+
+                    <h3>
+                        Analyze
+                    </h3>
+
+                    <p>
+
+                        CyberGuard applies the relevant
+                        detection engine.
+
+                    </p>
+
+                </article>
+
+
+                <article class="step">
+
+                    <div class="step-number">
+                        03 / REPORT
+                    </div>
+
+                    <h3>
+                        Understand
+                    </h3>
+
+                    <p>
+
+                        Receive a structured threat
+                        report and recommendations.
+
+                    </p>
+
+                </article>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- LANDING CTA -->
+
+    <section class="landing-section">
+
+        <div class="container">
+
+
+            <div class="cta">
+
+
+                <h2>
+
+                    Don't click.
+                    <br>
+                    Analyze first.
+
+                </h2>
+
+
+                <p>
+
+                    Suspicious message?
+                    Unknown URL?
+                    Scan it before interacting.
+
+                </p>
+
 
                 <button
                     class="btn btn-primary"
                     onclick="showPage('modules')"
                 >
 
-                    Start Analysis
+                    Open CyberGuard Scanner
 
                     <span>→</span>
 
                 </button>
 
-                <a
-                    href="#how-it-works"
-                    class="btn btn-secondary"
-                >
-
-                    How it works
-
-                </a>
 
             </div>
 
         </div>
 
-
-        <div class="analysis-window">
-
-            <div class="analysis-header">
-
-                <div class="window-dots">
-
-                    <span></span>
-                    <span></span>
-                    <span></span>
-
-                </div>
-
-                <div class="analysis-title">
-                    CYBERGUARD / LIVE_ANALYSIS
-                </div>
-
-            </div>
-
-
-            <div class="analysis-body">
-
-                <div class="terminal-line">
-
-                    <span class="terminal-prefix">
-                        >
-                    </span>
-
-                    initializing threat engine...
-
-                </div>
-
-                <div class="terminal-line success">
-                    ✓ phishing engine online
-                </div>
-
-                <div class="terminal-line success">
-                    ✓ identity engine online
-                </div>
-
-                <div class="terminal-line success">
-                    ✓ URL analysis engine online
-                </div>
-
-                <div class="terminal-line success">
-                    ✓ QR analysis engine online
-                </div>
-
-                <div class="terminal-line">
-
-                    <span class="terminal-prefix">
-                        >
-                    </span>
-
-                    loading threat intelligence...
-
-                </div>
-
-                <div class="terminal-line success">
-                    ✓ system ready
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- FEATURES -->
-
-<section
-    id="features"
-    class="landing-section"
->
-
-    <div class="container">
-
-        <div class="section-label">
-            CAPABILITIES
-        </div>
-
-        <h2 class="section-title">
-
-            One system.
-            <br>
-            Multiple attack surfaces.
-
-        </h2>
-
-        <p class="section-description">
-
-            CyberGuard combines machine-learning
-            analysis, URL inspection, QR extraction
-            and rule-based threat indicators into
-            one security workflow.
-
-        </p>
-
-
-        <div class="features-grid">
-
-            <article class="feature-card">
-
-                <div class="feature-icon">
-                    ◈
-                </div>
-
-                <h3>
-                    Phishing Detection
-                </h3>
-
-                <p>
-
-                    Analyze suspicious emails,
-                    messages, social-media content,
-                    QR codes and URLs.
-
-                </p>
-
-            </article>
-
-
-            <article class="feature-card">
-
-                <div class="feature-icon">
-                    ◎
-                </div>
-
-                <h3>
-                    Account Security
-                </h3>
-
-                <p>
-
-                    Identify abnormal authentication
-                    and suspicious account behaviour.
-
-                </p>
-
-            </article>
-
-
-            <article class="feature-card">
-
-                <div class="feature-icon">
-                    ⌁
-                </div>
-
-                <h3>
-                    URL Intelligence
-                </h3>
-
-                <p>
-
-                    Examine domains, redirects,
-                    spoofing patterns and suspicious
-                    website characteristics.
-
-                </p>
-
-            </article>
-
-        </div>
-
-    </div>
+    </section>
 
 </section>
 
 
-<!-- HOW IT WORKS -->
-
-<section
-    id="how-it-works"
-    class="landing-section"
->
-
-    <div class="container">
-
-        <div class="section-label">
-            WORKFLOW
-        </div>
-
-        <h2 class="section-title">
-
-            From suspicious input
-            to threat report.
-
-        </h2>
-
-
-        <div class="steps">
-
-            <article class="step">
-
-                <div class="step-number">
-                    01 / INPUT
-                </div>
-
-                <h3>
-                    Submit
-                </h3>
-
-                <p>
-
-                    Enter text, paste a URL or
-                    upload supported content.
-
-                </p>
-
-            </article>
-
-
-            <article class="step">
-
-                <div class="step-number">
-                    02 / ANALYSIS
-                </div>
-
-                <h3>
-                    Analyze
-                </h3>
-
-                <p>
-
-                    CyberGuard applies the relevant
-                    detection engine.
-
-                </p>
-
-            </article>
-
-
-            <article class="step">
-
-                <div class="step-number">
-                    03 / REPORT
-                </div>
-
-                <h3>
-                    Understand
-                </h3>
-
-                <p>
-
-                    Receive a structured threat
-                    report and recommendations.
-
-                </p>
-
-            </article>
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- CTA -->
-
-<section class="landing-section">
-
-    <div class="container">
-
-        <div class="cta">
-
-            <h2>
-
-                Don't click.
-                <br>
-                Analyze first.
-
-            </h2>
-
-            <p>
-
-                Suspicious message?
-                Unknown URL?
-                Scan it before interacting.
-
-            </p>
-
-            <button
-                class="btn btn-primary"
-                onclick="showPage('modules')"
-            >
-
-                Open CyberGuard Scanner
-
-                <span>→</span>
-
-            </button>
-
-        </div>
-
-    </div>
-
-</section>
-```
-
-</section>
 
 <!-- =====================================================
      PAGE 2 — MODULE SELECTION
@@ -499,187 +564,251 @@
     class="page"
 >
 
-```
-<div class="container module-page">
 
-    <div class="module-heading">
+    <div class="container module-page">
 
-        <div class="section-label">
-            THREAT INTELLIGENCE
+
+        <div class="module-heading">
+
+
+            <div class="section-label">
+                THREAT INTELLIGENCE
+            </div>
+
+
+            <h1 class="section-title">
+
+                Choose a detection module.
+
+            </h1>
+
+
+            <p class="section-description">
+
+                Select the type of threat you want
+                CyberGuard to analyze.
+
+            </p>
+
+
         </div>
 
-        <h1 class="section-title">
-            Choose a detection module.
-        </h1>
 
-        <p class="section-description">
 
-            Select the type of threat you want
-            CyberGuard to analyze.
+        <!-- THREE MODULES -->
 
-        </p>
+        <div class="module-grid">
+
+
+            <!-- MODULE 1 -->
+
+            <article
+                class="module-card"
+                onclick="showPage('phishing')"
+            >
+
+
+                <div class="module-number">
+                    01
+                </div>
+
+
+                <div class="module-icon">
+                    ◈
+                </div>
+
+
+                <h2>
+
+                    AI-Powered
+                    <br>
+                    Phishing Detection
+
+                </h2>
+
+
+                <p>
+
+                    Analyze suspicious emails,
+                    SMS/messages, social-media messages,
+                    QR codes, fraudulent websites and
+                    deceptive URLs.
+
+                </p>
+
+
+                <div class="module-tags">
+
+                    <span>
+                        EMAIL
+                    </span>
+
+                    <span>
+                        SMS
+                    </span>
+
+                    <span>
+                        SOCIAL
+                    </span>
+
+                    <span>
+                        QR
+                    </span>
+
+                </div>
+
+
+                <div class="module-arrow">
+                    Open module →
+                </div>
+
+
+            </article>
+
+
+
+            <!-- MODULE 2 -->
+
+            <article
+                class="module-card"
+                onclick="showPage('account')"
+            >
+
+
+                <div class="module-number">
+                    02
+                </div>
+
+
+                <div class="module-icon">
+                    ◎
+                </div>
+
+
+                <h2>
+
+                    Credential Theft &
+                    <br>
+                    Account Takeover
+
+                </h2>
+
+
+                <p>
+
+                    Detect abnormal login behaviour,
+                    suspicious sessions, unknown devices
+                    and unusual account activity.
+
+                </p>
+
+
+                <div class="module-tags">
+
+                    <span>
+                        LOGIN
+                    </span>
+
+                    <span>
+                        DEVICE
+                    </span>
+
+                    <span>
+                        SESSION
+                    </span>
+
+                </div>
+
+
+                <div class="module-arrow">
+                    Open module →
+                </div>
+
+
+            </article>
+
+
+
+            <!-- MODULE 3 -->
+
+            <article
+                class="module-card"
+                onclick="showPage('url')"
+            >
+
+
+                <div class="module-number">
+                    03
+                </div>
+
+
+                <div class="module-icon">
+                    ⌁
+                </div>
+
+
+                <h2>
+
+                    Malicious URL &
+                    <br>
+                    Website Detection
+
+                </h2>
+
+
+                <p>
+
+                    Analyze domains, URL manipulation,
+                    redirects, spoofing, SSL indicators
+                    and fake login pages.
+
+                </p>
+
+
+                <div class="module-tags">
+
+                    <span>
+                        URL
+                    </span>
+
+                    <span>
+                        DOMAIN
+                    </span>
+
+                    <span>
+                        WEBSITE
+                    </span>
+
+                </div>
+
+
+                <div class="module-arrow">
+                    Open module →
+                </div>
+
+
+            </article>
+
+
+        </div>
+
+
+
+        <button
+            class="back-button"
+            onclick="showPage('home')"
+        >
+
+            ← Back to CyberGuard
+
+        </button>
+
 
     </div>
-
-
-    <div class="module-grid">
-
-
-        <!-- MODULE 1 -->
-
-        <article
-            class="module-card"
-            onclick="showPage('phishing')"
-        >
-
-            <div class="module-number">
-                01
-            </div>
-
-            <div class="module-icon">
-                ◈
-            </div>
-
-            <h2>
-
-                AI-Powered
-                <br>
-                Phishing Detection
-
-            </h2>
-
-            <p>
-
-                Analyze suspicious emails,
-                SMS/messages, social-media messages,
-                QR codes, fraudulent websites and
-                deceptive URLs.
-
-            </p>
-
-            <div class="module-tags">
-
-                <span>EMAIL</span>
-                <span>SMS</span>
-                <span>SOCIAL</span>
-                <span>QR</span>
-
-            </div>
-
-            <div class="module-arrow">
-                Open module →
-            </div>
-
-        </article>
-
-
-        <!-- MODULE 2 -->
-
-        <article
-            class="module-card"
-            onclick="showPage('account')"
-        >
-
-            <div class="module-number">
-                02
-            </div>
-
-            <div class="module-icon">
-                ◎
-            </div>
-
-            <h2>
-
-                Credential Theft &
-                <br>
-                Account Takeover
-
-            </h2>
-
-            <p>
-
-                Detect abnormal login behaviour,
-                suspicious sessions, unknown devices
-                and unusual account activity.
-
-            </p>
-
-            <div class="module-tags">
-
-                <span>LOGIN</span>
-                <span>DEVICE</span>
-                <span>SESSION</span>
-
-            </div>
-
-            <div class="module-arrow">
-                Open module →
-            </div>
-
-        </article>
-
-
-        <!-- MODULE 3 -->
-
-        <article
-            class="module-card"
-            onclick="showPage('url')"
-        >
-
-            <div class="module-number">
-                03
-            </div>
-
-            <div class="module-icon">
-                ⌁
-            </div>
-
-            <h2>
-
-                Malicious URL &
-                <br>
-                Website Detection
-
-            </h2>
-
-            <p>
-
-                Analyze domains, URL manipulation,
-                redirects, spoofing, SSL indicators
-                and fake login pages.
-
-            </p>
-
-            <div class="module-tags">
-
-                <span>URL</span>
-                <span>DOMAIN</span>
-                <span>WEBSITE</span>
-
-            </div>
-
-            <div class="module-arrow">
-                Open module →
-            </div>
-
-        </article>
-
-    </div>
-
-
-    <button
-        class="back-button"
-        onclick="showPage('home')"
-    >
-
-        ← Back to CyberGuard
-
-    </button>
-
-</div>
-```
 
 </section>
+
+
 
 <!-- =====================================================
      PAGE 3 — PHISHING MODULE
@@ -690,191 +819,220 @@
     class="page"
 >
 
-```
-<div class="container scanner-page">
 
-    <button
-        class="back-button"
-        onclick="showPage('modules')"
-    >
-
-        ← Detection modules
-
-    </button>
+    <div class="container scanner-page">
 
 
-    <div class="module-header">
+        <button
+            class="back-button"
+            onclick="showPage('modules')"
+        >
 
-        <div class="section-label">
-            MODULE 01
-        </div>
+            ← Detection modules
 
-        <h1 class="section-title">
-
-            AI-Powered
-            <br>
-            Phishing Detection
-
-        </h1>
-
-        <p class="section-description">
-
-            Analyze suspicious messages, URLs,
-            QR codes and website content.
-
-        </p>
-
-    </div>
+        </button>
 
 
-    <div class="scanner-grid">
+        <div class="module-header">
 
 
-        <!-- MESSAGE -->
-
-        <div class="scanner-panel">
-
-            <div class="panel-label">
-                TEXT ANALYSIS
+            <div class="section-label">
+                MODULE 01
             </div>
 
-            <h3>
-                Message Scanner
-            </h3>
 
-            <p>
-                Email, SMS or social-media message
+            <h1 class="section-title">
+
+                AI-Powered
+                <br>
+                Phishing Detection
+
+            </h1>
+
+
+            <p class="section-description">
+
+                Analyze suspicious messages, URLs,
+                QR codes and website content.
+
             </p>
 
-            <textarea
-                id="phishingText"
-                placeholder="Paste suspicious message here..."
-            ></textarea>
-
-            <button
-                class="btn btn-primary"
-                id="messageAnalyzeButton"
-                onclick="analyzePhishing()"
-            >
-
-                Analyze Message →
-
-            </button>
 
         </div>
 
 
-        <!-- QR -->
 
-        <div class="scanner-panel">
+        <div class="scanner-grid">
 
-            <div class="panel-label">
-                IMAGE ANALYSIS
-            </div>
 
-            <h3>
-                QR Code Scanner
-            </h3>
+            <!-- MESSAGE -->
 
-            <p>
+            <div class="scanner-panel">
 
-                Upload a QR image for extraction
-                and threat analysis.
 
-            </p>
-
-            <div
-                class="upload-area"
-                onclick="document.getElementById('qrInput').click()"
-            >
-
-                <div class="upload-icon">
-                    ↑
+                <div class="panel-label">
+                    TEXT ANALYSIS
                 </div>
 
-                <h4>
-                    Upload QR image
-                </h4>
+
+                <h3>
+                    Message Scanner
+                </h3>
+
 
                 <p>
-                    PNG / JPG / WEBP
+
+                    Email, SMS or social-media message
+
                 </p>
 
-                <input
-                    type="file"
-                    id="qrInput"
-                    hidden
-                    accept="image/*"
+
+                <textarea
+                    id="phishingText"
+                    placeholder="Paste suspicious message here..."
+                ></textarea>
+
+
+                <button
+                    class="btn btn-primary"
+                    onclick="analyzePhishing()"
                 >
+
+                    Analyze Message →
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- QR -->
+
+            <div class="scanner-panel">
+
+
+                <div class="panel-label">
+                    IMAGE ANALYSIS
+                </div>
+
+
+                <h3>
+                    QR Code Scanner
+                </h3>
+
+
+                <p>
+
+                    Upload a QR image for extraction
+                    and threat analysis.
+
+                </p>
+
+
+                <div
+                    class="upload-area"
+                    onclick="document.getElementById('qrInput').click()"
+                >
+
+                    <div class="upload-icon">
+                        ↑
+                    </div>
+
+
+                    <h4>
+                        Upload QR image
+                    </h4>
+
+
+                    <p>
+                        PNG / JPG / WEBP
+                    </p>
+
+
+                    <input
+                        type="file"
+                        id="qrInput"
+                        hidden
+                        accept="image/*"
+                    >
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- RESULT -->
+
+        <div
+            class="threat-report"
+            id="phishingResult"
+        >
+
+            <div class="report-header">
+
+                <h3>
+                    CYBERGUARD THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    READY
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Awaiting analysis
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Threat
+                </span>
+
+                <span>
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Indicators
+                </span>
+
+                <span>
+                    —
+                </span>
 
             </div>
 
         </div>
 
-    </div>
-
-
-    <!-- RESULT -->
-
-    <div
-        class="threat-report"
-        id="phishingResult"
-    >
-
-        <div class="report-header">
-
-            <h3>
-                CYBERGUARD THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                READY
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Status
-            </span>
-
-            <span>
-                Awaiting analysis
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Threat
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Indicators
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
 
     </div>
-
-</div>
-```
 
 </section>
+
+
 
 <!-- =====================================================
      PAGE 4 — ACCOUNT TAKEOVER
@@ -885,215 +1043,234 @@
     class="page"
 >
 
-```
-<div class="container scanner-page">
 
-    <button
-        class="back-button"
-        onclick="showPage('modules')"
-    >
-
-        ← Detection modules
-
-    </button>
+    <div class="container scanner-page">
 
 
-    <div class="module-header">
+        <button
+            class="back-button"
+            onclick="showPage('modules')"
+        >
 
-        <div class="section-label">
-            MODULE 02
-        </div>
+            ← Detection modules
 
-        <h1 class="section-title">
-
-            Credential Theft &
-            <br>
-            Account Takeover
-
-        </h1>
-
-        <p class="section-description">
-
-            Analyze abnormal authentication
-            and account behaviour.
-
-        </p>
-
-    </div>
+        </button>
 
 
-    <div class="scanner-grid">
+        <div class="module-header">
 
 
-        <!-- LOGIN -->
-
-        <div class="scanner-panel">
-
-            <div class="panel-label">
-                AUTHENTICATION
+            <div class="section-label">
+                MODULE 02
             </div>
 
-            <h3>
-                Login Activity
-            </h3>
 
-            <p>
-                Examine suspicious login events.
+            <h1 class="section-title">
+
+                Credential Theft &
+                <br>
+                Account Takeover
+
+            </h1>
+
+
+            <p class="section-description">
+
+                Analyze abnormal authentication
+                and account behaviour.
+
             </p>
 
-            <div class="input-group">
-
-                <label>
-                    Failed login attempts
-                </label>
-
-                <input
-                    type="number"
-                    placeholder="e.g. 8"
-                >
-
-            </div>
-
-            <div class="input-group">
-
-                <label>
-                    Login location
-                </label>
-
-                <input
-                    type="text"
-                    placeholder="e.g. Mumbai"
-                >
-
-            </div>
-
-            <button
-                class="btn btn-primary"
-                onclick="demoAccountAnalysis()"
-            >
-
-                Analyze Activity →
-
-            </button>
 
         </div>
 
 
-        <!-- DEVICE -->
 
-        <div class="scanner-panel">
+        <div class="scanner-grid">
 
-            <div class="panel-label">
-                DEVICE ACTIVITY
-            </div>
 
-            <h3>
-                Device & Session
-            </h3>
+            <!-- LOGIN -->
 
-            <p>
-                Review suspicious account sessions.
-            </p>
+            <div class="scanner-panel">
 
-            <div class="input-group">
 
-                <label>
-                    Device
-                </label>
+                <div class="panel-label">
+                    AUTHENTICATION
+                </div>
 
-                <input
-                    type="text"
-                    placeholder="New / Unknown device"
+
+                <h3>
+                    Login Activity
+                </h3>
+
+
+                <p>
+                    Examine suspicious login events.
+                </p>
+
+
+                <div class="input-group">
+
+                    <label>
+                        Failed login attempts
+                    </label>
+
+                    <input
+                        id="failedLoginInput"
+                        type="number"
+                        placeholder="e.g. 8"
+                    >
+
+                </div>
+
+
+                <div class="input-group">
+
+                    <label>
+                        Login location
+                    </label>
+
+                    <input
+                        id="loginLocationInput"
+                        type="text"
+                        placeholder="e.g. Mumbai"
+                    >
+
+                </div>
+
+
+                <button
+                    class="btn btn-primary"
+                    onclick="demoAccountAnalysis()"
                 >
 
+                    Analyze Activity →
+
+                </button>
+
+
             </div>
 
-            <div class="input-group">
 
-                <label>
-                    Session behaviour
-                </label>
 
-                <input
-                    type="text"
-                    placeholder="Describe activity"
+            <!-- DEVICE -->
+
+            <div class="scanner-panel">
+
+
+                <div class="panel-label">
+                    DEVICE ACTIVITY
+                </div>
+
+
+                <h3>
+                    Device & Session
+                </h3>
+
+
+                <p>
+                    Review suspicious account sessions.
+                </p>
+
+
+                <div class="input-group">
+
+                    <label>
+                        Device
+                    </label>
+
+                    <input
+                        id="deviceInput"
+                        type="text"
+                        placeholder="New / Unknown device"
+                    >
+
+                </div>
+
+
+                <div class="input-group">
+
+                    <label>
+                        Session behaviour
+                    </label>
+
+                    <input
+                        id="sessionInput"
+                        type="text"
+                        placeholder="Describe activity"
+                    >
+
+                </div>
+
+
+                <button
+                    class="btn btn-secondary"
+                    onclick="demoAccountAnalysis()"
                 >
 
+                    Analyze Session →
+
+                </button>
+
+
             </div>
 
-            <button
-                class="btn btn-secondary"
-                onclick="demoAccountAnalysis()"
-            >
-
-                Analyze Session →
-
-            </button>
 
         </div>
+
+
+
+        <div
+            class="threat-report"
+            id="accountResult"
+        >
+
+            <div class="report-header">
+
+                <h3>
+                    ACCOUNT THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    NOT CONNECTED
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Account analysis endpoint not implemented yet.
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Backend
+                </span>
+
+                <span>
+                    No /api/analyze/account endpoint.
+                </span>
+
+            </div>
+
+        </div>
+
 
     </div>
-
-
-    <div
-        class="threat-report"
-        id="accountResult"
-    >
-
-        <div class="report-header">
-
-            <h3>
-                ACCOUNT THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                DEMO
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Status
-            </span>
-
-            <span>
-                Awaiting activity
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Risk indicators
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Recommendation
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-```
 
 </section>
+
+
 
 <!-- =====================================================
      PAGE 5 — URL / WEBSITE
@@ -1104,192 +1281,220 @@
     class="page"
 >
 
-```
-<div class="container scanner-page">
 
-    <button
-        class="back-button"
-        onclick="showPage('modules')"
-    >
-
-        ← Detection modules
-
-    </button>
+    <div class="container scanner-page">
 
 
-    <div class="module-header">
+        <button
+            class="back-button"
+            onclick="showPage('modules')"
+        >
 
-        <div class="section-label">
-            MODULE 03
-        </div>
+            ← Detection modules
 
-        <h1 class="section-title">
-
-            Malicious URL &
-            <br>
-            Website Detection
-
-        </h1>
-
-        <p class="section-description">
-
-            Inspect suspicious URLs and website
-            characteristics for potential threats.
-
-        </p>
-
-    </div>
+        </button>
 
 
-    <div class="url-scanner">
+        <div class="module-header">
 
 
-        <div class="scanner-panel">
-
-            <div class="panel-label">
-                URL INTELLIGENCE
+            <div class="section-label">
+                MODULE 03
             </div>
 
-            <h3>
-                URL Analyzer
-            </h3>
 
-            <p>
+            <h1 class="section-title">
 
-                Enter a suspicious URL to analyze
-                its structure and indicators.
+                Malicious URL &
+                <br>
+                Website Detection
+
+            </h1>
+
+
+            <p class="section-description">
+
+                Inspect suspicious URLs and website
+                characteristics for potential threats.
 
             </p>
 
-            <input
-                type="url"
-                id="urlInput"
-                placeholder="https://example.com"
-            >
-
-            <button
-                class="btn btn-primary"
-                onclick="analyzeURL()"
-            >
-
-                Analyze URL →
-
-            </button>
 
         </div>
 
 
-        <div class="scanner-panel">
 
-            <div class="panel-label">
-                WEBSITE ANALYSIS
+        <div class="url-scanner">
+
+
+            <div class="scanner-panel">
+
+
+                <div class="panel-label">
+                    URL INTELLIGENCE
+                </div>
+
+
+                <h3>
+                    URL Analyzer
+                </h3>
+
+
+                <p>
+
+                    Enter a suspicious URL to analyze
+                    its structure and indicators.
+
+                </p>
+
+
+                <input
+                    type="url"
+                    id="urlInput"
+                    placeholder="https://example.com"
+                >
+
+
+                <button
+                    class="btn btn-primary"
+                    onclick="analyzeURL()"
+                >
+
+                    Analyze URL →
+
+                </button>
+
+
             </div>
 
-            <h3>
-                Website Scanner
-            </h3>
 
-            <p>
 
-                Inspect a suspicious website for
-                characteristics such as fake login
-                pages and domain spoofing.
+            <div class="scanner-panel">
 
-            </p>
 
-            <input
-                type="url"
-                id="websiteInput"
-                placeholder="https://suspicious-site.com"
-            >
+                <div class="panel-label">
+                    WEBSITE ANALYSIS
+                </div>
 
-            <button
-                class="btn btn-secondary"
-                onclick="analyzeWebsite()"
-            >
 
-                Analyze Website →
+                <h3>
+                    Website Scanner
+                </h3>
 
-            </button>
+
+                <p>
+
+                    Inspect a suspicious website for
+                    characteristics such as fake login
+                    pages and domain spoofing.
+
+                </p>
+
+
+                <input
+                    type="url"
+                    id="websiteInput"
+                    placeholder="https://suspicious-site.com"
+                >
+
+
+                <button
+                    class="btn btn-secondary"
+                    onclick="analyzeWebsite()"
+                >
+
+                    Analyze Website →
+
+                </button>
+
+
+            </div>
+
 
         </div>
+
+
+
+        <div
+            class="threat-report"
+            id="urlResult"
+        >
+
+            <div class="report-header">
+
+                <h3>
+                    URL THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    READY
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    URL
+                </span>
+
+                <span id="resultURL">
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Domain status
+                </span>
+
+                <span>
+                    Awaiting analysis
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Indicators
+                </span>
+
+                <span>
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Recommendation
+                </span>
+
+                <span>
+                    —
+                </span>
+
+            </div>
+
+        </div>
+
 
     </div>
-
-
-    <div
-        class="threat-report"
-        id="urlResult"
-    >
-
-        <div class="report-header">
-
-            <h3>
-                URL THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                READY
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                URL
-            </span>
-
-            <span id="resultURL">
-                —
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Domain status
-            </span>
-
-            <span>
-                Awaiting analysis
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Indicators
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
-
-        <div class="report-item">
-
-            <span>
-                Recommendation
-            </span>
-
-            <span>
-                —
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-```
 
 </section>
 
+
 </main>
+
+
 
 <!-- =====================================================
      FOOTER
@@ -1297,174 +1502,148 @@
 
 <footer>
 
-```
-<div class="container">
+    <div class="container">
 
-    <div class="footer-inner">
-
-        <div class="footer-brand">
-
-            <h3>
-                CYBERGUARD
-            </h3>
-
-            <p>
-
-                AI-powered threat intelligence
-                for suspicious digital activity.
-
-            </p>
-
-        </div>
+        <div class="footer-inner">
 
 
-        <div class="footer-links">
+            <div class="footer-brand">
 
-            <div class="footer-column">
+                <h3>
+                    CYBERGUARD
+                </h3>
 
-                <h4>
-                    Platform
-                </h4>
 
-                <a
-                    href="#home"
-                    onclick="showPage('home')"
-                >
-                    Home
-                </a>
+                <p>
 
-                <a
-                    href="#modules"
-                    onclick="showPage('modules')"
-                >
-                    Detection
-                </a>
+                    AI-powered threat intelligence
+                    for suspicious digital activity.
 
-                <a
-                    href="#modules"
-                    onclick="showPage('modules')"
-                >
-                    Scanner
-                </a>
+                </p>
 
             </div>
 
 
-            <div class="footer-column">
+            <div class="footer-links">
 
-                <h4>
-                    Modules
-                </h4>
 
-                <a
-                    href="#phishing"
-                    onclick="showPage('phishing')"
-                >
-                    Phishing
-                </a>
+                <div class="footer-column">
 
-                <a
-                    href="#account"
-                    onclick="showPage('account')"
-                >
-                    Account Takeover
-                </a>
+                    <h4>
+                        Platform
+                    </h4>
 
-                <a
-                    href="#url"
-                    onclick="showPage('url')"
-                >
-                    URL Intelligence
-                </a>
+                    <a
+                        href="#home"
+                        onclick="showPage('home')"
+                    >
+                        Home
+                    </a>
+
+                    <a
+                        href="#modules"
+                        onclick="showPage('modules')"
+                    >
+                        Detection
+                    </a>
+
+                    <a
+                        href="#modules"
+                        onclick="showPage('modules')"
+                    >
+                        Scanner
+                    </a>
+
+                </div>
+
+
+                <div class="footer-column">
+
+                    <h4>
+                        Modules
+                    </h4>
+
+                    <a
+                        href="#phishing"
+                        onclick="showPage('phishing')"
+                    >
+                        Phishing
+                    </a>
+
+                    <a
+                        href="#account"
+                        onclick="showPage('account')"
+                    >
+                        Account Takeover
+                    </a>
+
+                    <a
+                        href="#url"
+                        onclick="showPage('url')"
+                    >
+                        URL Intelligence
+                    </a>
+
+                </div>
+
 
             </div>
 
         </div>
 
+
+        <div class="footer-bottom">
+
+            <span>
+                © 2026 CYBERGUARD
+            </span>
+
+
+            <span>
+                THREAT INTELLIGENCE SYSTEM
+            </span>
+
+        </div>
+
     </div>
-
-
-    <div class="footer-bottom">
-
-        <span>
-            © 2026 CYBERGUARD
-        </span>
-
-        <span>
-            THREAT INTELLIGENCE SYSTEM
-        </span>
-
-    </div>
-
-</div>
-```
 
 </footer>
 
+
+
 <!-- =====================================================
-     JAVASCRIPT
-     Hugging Face Gradio Client
+     EMBEDDED JAVASCRIPT
 ===================================================== -->
 
-<script type="module">
+<script>
+
+
+/* =====================================================
+   API CONFIGURATION
+===================================================== */
 
 /*
-============================================================
-HUGGING FACE CONNECTION
-============================================================
+    Frontend and backend will eventually be deployed
+    under the same Vercel project.
+
+    Therefore we use relative API paths.
+
+    Examples:
+
+    /api/analyze/message
+    /api/analyze/url
+    /api/analyze/website
+    /api/analyze/qr
 */
 
-import { Client } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
+const API_BASE = "";
 
 
-const HF_SPACE = "saswatpatra/cyberguard_phishing";
+/* =====================================================
+   PAGE NAVIGATION
+===================================================== */
 
-let cyberGuardApp = null;
-
-
-/*
-============================================================
-CONNECT TO HUGGING FACE
-============================================================
-*/
-
-async function connectToCyberGuard() {
-
-    if (cyberGuardApp) {
-        return cyberGuardApp;
-    }
-
-    try {
-
-        cyberGuardApp = await Client.connect(
-            HF_SPACE
-        );
-
-        console.log(
-            "Connected to CyberGuard Hugging Face Space."
-        );
-
-        return cyberGuardApp;
-
-    } catch (error) {
-
-        console.error(
-            "Hugging Face connection failed:",
-            error
-        );
-
-        throw error;
-    }
-}
-
-
-/*
-============================================================
-PAGE NAVIGATION
-============================================================
-*/
-
-window.showPage = function(pageId) {
+function showPage(pageId) {
 
     const pages =
         document.querySelectorAll(".page");
@@ -1481,6 +1660,7 @@ window.showPage = function(pageId) {
     const selectedPage =
         document.getElementById(pageId);
 
+
     if (selectedPage) {
 
         selectedPage.classList.add(
@@ -1491,18 +1671,19 @@ window.showPage = function(pageId) {
 
 
     window.scrollTo({
+
         top: 0,
+
         behavior: "smooth"
+
     });
 
-};
+}
 
 
-/*
-============================================================
-HELPER — ESCAPE HTML
-============================================================
-*/
+/* =====================================================
+   HELPER — ESCAPE HTML
+===================================================== */
 
 function escapeHTML(value) {
 
@@ -1515,26 +1696,90 @@ function escapeHTML(value) {
 
     }
 
+
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
 }
 
 
-/*
-============================================================
-HELPER — FORMAT API DATA
-============================================================
-*/
+/* =====================================================
+   HELPER — FORMAT ARRAY
+===================================================== */
 
-function formatValue(value) {
+function formatArray(value) {
+
+    if (!value) {
+
+        return "—";
+
+    }
+
+
+    if (!Array.isArray(value)) {
+
+        return escapeHTML(value);
+
+    }
+
+
+    if (value.length === 0) {
+
+        return "None";
+
+    }
+
+
+    return value
+
+        .map(item => {
+
+            return `
+                <div>
+                    ${escapeHTML(item)}
+                </div>
+            `;
+
+        })
+
+        .join("");
+
+}
+
+
+/* =====================================================
+   HELPER — FORMAT OBJECT
+===================================================== */
+
+function formatObject(value) {
 
     if (
-        value === null ||
-        value === undefined
+        !value ||
+        typeof value !== "object"
     ) {
 
         return "—";
@@ -1542,457 +1787,68 @@ function formatValue(value) {
     }
 
 
-    if (Array.isArray(value)) {
+    return Object.entries(value)
 
-        if (value.length === 0) {
-            return "None detected";
-        }
+        .map(([key, val]) => {
 
-        return value
-            .map(item => {
-
-                if (
-                    typeof item === "object" &&
-                    item !== null
-                ) {
-
-                    return JSON.stringify(
-                        item
-                    );
-
-                }
-
-                return String(item);
-
-            })
-            .join(", ");
-
-    }
+            let formatted;
 
 
-    if (
-        typeof value === "object"
-    ) {
+            if (Array.isArray(val)) {
 
-        return JSON.stringify(
-            value,
-            null,
-            2
-        );
-
-    }
-
-
-    return String(value);
-}
-
-
-/*
-============================================================
-HELPER — FIND FIELD RECURSIVELY
-============================================================
-*/
-
-function findField(
-    object,
-    possibleNames
-) {
-
-    if (
-        !object ||
-        typeof object !== "object"
-    ) {
-
-        return null;
-
-    }
-
-
-    for (
-        const key of possibleNames
-    ) {
-
-        if (
-            Object.prototype.hasOwnProperty.call(
-                object,
-                key
-            )
-        ) {
-
-            return object[key];
-
-        }
-
-    }
-
-
-    for (
-        const key of Object.keys(object)
-    ) {
-
-        const value = object[key];
-
-
-        if (
-            value &&
-            typeof value === "object"
-        ) {
-
-            const result =
-                findField(
-                    value,
-                    possibleNames
-                );
-
-            if (
-                result !== null &&
-                result !== undefined
-            ) {
-
-                return result;
+                formatted =
+                    formatArray(val);
 
             }
 
-        }
+            else if (
+                typeof val === "object" &&
+                val !== null
+            ) {
 
-    }
+                formatted =
+                    formatObject(val);
 
+            }
 
-    return null;
-}
+            else {
 
+                formatted =
+                    escapeHTML(val);
 
-/*
-============================================================
-HELPER — CREATE REPORT FROM API RESULT
-============================================================
-*/
+            }
 
-function createThreatReport(
-    result,
-    title
-) {
 
-    let data = result;
+            return `
 
+                <div
+                    style="
+                        margin-bottom:8px;
+                    "
+                >
 
-    /*
-       Gradio normally returns:
-       result.data
-    */
+                    <strong>
+                        ${escapeHTML(key)}:
+                    </strong>
 
-    if (
-        result &&
-        Object.prototype.hasOwnProperty.call(
-            result,
-            "data"
-        )
-    ) {
+                    ${formatted}
 
-        data = result.data;
+                </div>
 
-    }
+            `;
 
+        })
 
-    /*
-       Some Gradio endpoints return
-       a single object inside data.
-    */
-
-    if (
-        Array.isArray(data) &&
-        data.length === 1
-    ) {
-
-        data = data[0];
-
-    }
-
-
-    let status =
-        findField(
-            data,
-            [
-                "status",
-                "Status"
-            ]
-        );
-
-
-    let riskLevel =
-        findField(
-            data,
-            [
-                "risk_level",
-                "riskLevel",
-                "Risk Level"
-            ]
-        );
-
-
-    let riskScore =
-        findField(
-            data,
-            [
-                "risk_score",
-                "riskScore",
-                "Risk Score"
-            ]
-        );
-
-
-    let recommendation =
-        findField(
-            data,
-            [
-                "recommendation",
-                "Recommendation"
-            ]
-        );
-
-
-    let indicators =
-        findField(
-            data,
-            [
-                "detected_indicators",
-                "detected_categories",
-                "indicators",
-                "reasons"
-            ]
-        );
-
-
-    let brands =
-        findField(
-            data,
-            [
-                "possible_impersonated_brands",
-                "impersonated_brands"
-            ]
-        );
-
-
-    /*
-       If the API returns a JSON string,
-       attempt to parse it.
-    */
-
-    if (
-        typeof data === "string"
-    ) {
-
-        try {
-
-            const parsed =
-                JSON.parse(data);
-
-            data = parsed;
-
-            status =
-                findField(
-                    data,
-                    [
-                        "status",
-                        "Status"
-                    ]
-                );
-
-            riskLevel =
-                findField(
-                    data,
-                    [
-                        "risk_level",
-                        "riskLevel"
-                    ]
-                );
-
-            riskScore =
-                findField(
-                    data,
-                    [
-                        "risk_score",
-                        "riskScore"
-                    ]
-                );
-
-            recommendation =
-                findField(
-                    data,
-                    [
-                        "recommendation",
-                        "Recommendation"
-                    ]
-                );
-
-            indicators =
-                findField(
-                    data,
-                    [
-                        "detected_indicators",
-                        "detected_categories",
-                        "indicators",
-                        "reasons"
-                    ]
-                );
-
-            brands =
-                findField(
-                    data,
-                    [
-                        "possible_impersonated_brands"
-                    ]
-                );
-
-        } catch (error) {
-
-            // Keep original string.
-
-        }
-
-    }
-
-
-    const displayStatus =
-        status ||
-        "Analysis completed";
-
-
-    const displayRisk =
-        riskLevel ||
-        "Analyzed";
-
-
-    const displayScore =
-        riskScore !== null &&
-        riskScore !== undefined
-            ? riskScore
-            : "—";
-
-
-    const displayIndicators =
-        indicators
-            ? formatValue(indicators)
-            : "No indicators returned";
-
-
-    const displayBrands =
-        brands
-            ? formatValue(brands)
-            : "None detected";
-
-
-    const displayRecommendation =
-        recommendation ||
-        "Review the analysis before interacting with the content.";
-
-
-    return `
-
-        <div class="report-header">
-
-            <h3>
-                ${escapeHTML(title)}
-            </h3>
-
-            <span class="risk-badge">
-                ${escapeHTML(displayRisk)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Status
-            </span>
-
-            <span>
-                ${escapeHTML(displayStatus)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Risk Level
-            </span>
-
-            <span>
-                ${escapeHTML(displayRisk)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Risk Score
-            </span>
-
-            <span>
-                ${escapeHTML(displayScore)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Indicators
-            </span>
-
-            <span>
-                ${escapeHTML(displayIndicators)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Possible Impersonation
-            </span>
-
-            <span>
-                ${escapeHTML(displayBrands)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Recommendation
-            </span>
-
-            <span>
-                ${escapeHTML(
-                    displayRecommendation
-                )}
-            </span>
-
-        </div>
-
-    `;
+        .join("");
 
 }
 
 
-/*
-============================================================
-MODULE 1 — MESSAGE ANALYSIS
-============================================================
-*/
+/* =====================================================
+   MESSAGE / PHISHING ANALYSIS
+===================================================== */
 
-window.analyzePhishing = async function() {
+async function analyzePhishing() {
 
     const text =
         document
@@ -2020,18 +1876,6 @@ window.analyzePhishing = async function() {
         );
 
 
-    const button =
-        document.getElementById(
-            "messageAnalyzeButton"
-        );
-
-
-    button.disabled = true;
-
-    button.innerHTML =
-        "Analyzing...";
-
-
     result.innerHTML = `
 
         <div class="report-header">
@@ -2046,6 +1890,7 @@ window.analyzePhishing = async function() {
 
         </div>
 
+
         <div class="report-item">
 
             <span>
@@ -2053,7 +1898,7 @@ window.analyzePhishing = async function() {
             </span>
 
             <span>
-                Connecting to AI engine...
+                Analyzing message...
             </span>
 
         </div>
@@ -2063,46 +1908,331 @@ window.analyzePhishing = async function() {
 
     try {
 
-        const app =
-            await connectToCyberGuard();
-
-
-        /*
-           Hugging Face endpoint:
-           /analyze_message
-
-           Input:
-           message text
-        */
-
         const response =
-            await app.predict(
-                "/analyze_message",
-                [
-                    text
-                ]
+            await fetch(
+                API_BASE +
+                "/api/analyze/message",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            message: text
+                        })
+
+                }
             );
 
 
-        console.log(
-            "Message API response:",
-            response
-        );
+        const data =
+            await response.json();
 
 
-        result.innerHTML =
-            createThreatReport(
-                response,
-                "CYBERGUARD THREAT REPORT"
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Message analysis failed."
             );
 
+        }
 
-    } catch (error) {
 
-        console.error(
-            "Message analysis error:",
-            error
-        );
+        const report =
+            data.message_report;
+
+
+        const urlReports =
+            data.url_reports || [];
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    CYBERGUARD THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+
+                    ${escapeHTML(
+                        report.risk_level ||
+                        "ANALYZED"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        report.status ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Risk Score
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        report.risk_score ??
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Model Prediction
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        report.model_prediction ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Model Confidence
+                </span>
+
+                <span>
+
+                    ${
+                        report.model_confidence !==
+                        undefined
+
+                        ? escapeHTML(
+                            report.model_confidence
+                        ) + "%"
+
+                        : "—"
+                    }
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Indicator Score
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        report.indicator_score ??
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Detected Categories
+                </span>
+
+                <span>
+
+                    ${formatObject(
+                        report.detected_categories
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    High-Risk Combinations
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        report.high_risk_combinations
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Recommendation
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        report.recommendation ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            ${
+                urlReports.length > 0
+
+                ?
+
+                `
+
+                    <div
+                        style="
+                            margin-top:20px;
+                            font-weight:600;
+                        "
+                    >
+
+                        URLs Detected in Message
+
+                    </div>
+
+
+                    ${urlReports
+
+                        .map(
+                            urlReport => {
+
+                                return `
+
+                                    <div
+                                        style="
+                                            margin-top:12px;
+                                            padding:12px;
+                                            border:1px solid rgba(255,255,255,0.1);
+                                            border-radius:8px;
+                                        "
+                                    >
+
+                                        <div>
+
+                                            <strong>
+                                                URL:
+                                            </strong>
+
+                                            ${escapeHTML(
+                                                urlReport.url
+                                            )}
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
+                                                Risk:
+                                            </strong>
+
+                                            ${escapeHTML(
+                                                urlReport.risk_level
+                                            )}
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
+                                                Score:
+                                            </strong>
+
+                                            ${escapeHTML(
+                                                urlReport.risk_score
+                                            )}
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
+                                                Indicators:
+                                            </strong>
+
+                                            ${formatArray(
+                                                urlReport.detected_indicators
+                                            )}
+
+                                        </div>
+
+                                    </div>
+
+                                `;
+
+                            }
+                        )
+
+                        .join("")}
+
+                `
+
+                :
+
+                ""
+
+            }
+
+        `;
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
 
 
         result.innerHTML = `
@@ -2127,7 +2257,7 @@ window.analyzePhishing = async function() {
                 </span>
 
                 <span>
-                    Analysis failed
+                    Backend connection failed
                 </span>
 
             </div>
@@ -2140,35 +2270,83 @@ window.analyzePhishing = async function() {
                 </span>
 
                 <span>
+
                     ${escapeHTML(
-                        error.message ||
-                        "Unable to connect to AI engine."
+                        error.message
                     )}
+
                 </span>
 
             </div>
 
         `;
 
-    } finally {
-
-        button.disabled = false;
-
-        button.innerHTML =
-            "Analyze Message →";
-
     }
 
-};
+}
 
 
-/*
-============================================================
-MODULE 1 — QR ANALYSIS
-============================================================
-*/
+/* =====================================================
+   QR CODE ANALYSIS
+===================================================== */
 
-async function analyzeQRFile(file) {
+const qrInput =
+    document.getElementById(
+        "qrInput"
+    );
+
+
+if (qrInput) {
+
+    qrInput.addEventListener(
+        "change",
+        async function () {
+
+            if (
+                !qrInput.files ||
+                qrInput.files.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            const file =
+                qrInput.files[0];
+
+
+            const uploadArea =
+                qrInput.closest(
+                    ".upload-area"
+                );
+
+
+            if (uploadArea) {
+
+                uploadArea
+                    .querySelector("h4")
+                    .textContent =
+                    file.name;
+
+
+                uploadArea
+                    .querySelector("p")
+                    .textContent =
+                    "Analyzing QR image...";
+
+            }
+
+
+            await analyzeQR(file);
+
+        }
+    );
+
+}
+
+
+async function analyzeQR(file) {
 
     const result =
         document.getElementById(
@@ -2194,24 +2372,11 @@ async function analyzeQRFile(file) {
         <div class="report-item">
 
             <span>
-                File
-            </span>
-
-            <span>
-                ${escapeHTML(file.name)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
                 Status
             </span>
 
             <span>
-                Sending image to QR engine...
+                Scanning QR code...
             </span>
 
         </div>
@@ -2219,45 +2384,159 @@ async function analyzeQRFile(file) {
     `;
 
 
+    const formData =
+        new FormData();
+
+
+    formData.append(
+        "file",
+        file
+    );
+
+
     try {
 
-        const app =
-            await connectToCyberGuard();
-
-
-        /*
-           Gradio browser client accepts
-           File / Blob for image inputs.
-        */
-
         const response =
-            await app.predict(
-                "/scan_qr",
-                [
-                    file
-                ]
+            await fetch(
+                API_BASE +
+                "/api/analyze/qr",
+                {
+
+                    method: "POST",
+
+                    body:
+                        formData
+
+                }
             );
 
 
-        console.log(
-            "QR API response:",
-            response
-        );
+        const data =
+            await response.json();
 
 
-        result.innerHTML =
-            createThreatReport(
-                response,
-                "CYBERGUARD QR THREAT REPORT"
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "QR analysis failed."
+            );
+
+        }
+
+
+        const analysis =
+            data.analysis || {};
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    CYBERGUARD QR THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ANALYZED
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.status ||
+                        "Analysis completed"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Payload Type
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.payload_type ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Decoded Payload
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.payload ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Analysis
+                </span>
+
+                <span>
+
+                    ${formatObject(
+                        analysis
+                    )}
+
+                </span>
+
+            </div>
+
+        `;
+
+
+        const uploadArea =
+            qrInput.closest(
+                ".upload-area"
             );
 
 
-    } catch (error) {
+        if (uploadArea) {
 
-        console.error(
-            "QR analysis error:",
-            error
-        );
+            uploadArea
+                .querySelector("p")
+                .textContent =
+                "QR analysis completed";
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
 
 
         result.innerHTML = `
@@ -2295,161 +2574,43 @@ async function analyzeQRFile(file) {
                 </span>
 
                 <span>
+
                     ${escapeHTML(
-                        error.message ||
-                        "Unable to process QR image."
+                        error.message
                     )}
+
                 </span>
 
             </div>
 
         `;
 
+
+        const uploadArea =
+            qrInput.closest(
+                ".upload-area"
+            );
+
+
+        if (uploadArea) {
+
+            uploadArea
+                .querySelector("p")
+                .textContent =
+                "QR analysis failed";
+
+        }
+
     }
 
 }
 
 
-/*
-============================================================
-QR FILE SELECTION
-============================================================
-*/
+/* =====================================================
+   URL ANALYSIS
+===================================================== */
 
-const qrInput =
-    document.getElementById(
-        "qrInput"
-    );
-
-
-if (qrInput) {
-
-    qrInput.addEventListener(
-        "change",
-        async function() {
-
-            if (
-                qrInput.files &&
-                qrInput.files.length > 0
-            ) {
-
-                const file =
-                    qrInput.files[0];
-
-
-                const uploadArea =
-                    qrInput.closest(
-                        ".upload-area"
-                    );
-
-
-                if (uploadArea) {
-
-                    uploadArea.querySelector(
-                        "h4"
-                    ).textContent =
-                        file.name;
-
-
-                    uploadArea.querySelector(
-                        "p"
-                    ).textContent =
-                        "Analyzing QR image...";
-
-                }
-
-
-                await analyzeQRFile(
-                    file
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/*
-============================================================
-MODULE 2 — DEMO
-============================================================
-*/
-
-window.demoAccountAnalysis = function() {
-
-    const result =
-        document.getElementById(
-            "accountResult"
-        );
-
-
-    result.innerHTML = `
-
-        <div class="report-header">
-
-            <h3>
-                ACCOUNT THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                DEMO
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Status
-            </span>
-
-            <span>
-                Activity submitted
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Behaviour
-            </span>
-
-            <span>
-                Demo analysis
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Recommendation
-            </span>
-
-            <span>
-                Account takeover engine will be connected later.
-            </span>
-
-        </div>
-
-    `;
-
-};
-
-
-/*
-============================================================
-MODULE 3 — URL ANALYSIS
-============================================================
-*/
-
-window.analyzeURL = async function() {
+async function analyzeURL() {
 
     const url =
         document
@@ -2477,11 +2638,6 @@ window.analyzeURL = async function() {
         );
 
 
-    document.getElementById(
-        "resultURL"
-    ).textContent = url;
-
-
     result.innerHTML = `
 
         <div class="report-header">
@@ -2500,24 +2656,11 @@ window.analyzeURL = async function() {
         <div class="report-item">
 
             <span>
-                URL
-            </span>
-
-            <span>
-                ${escapeHTML(url)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
                 Status
             </span>
 
             <span>
-                Sending URL to AI engine...
+                Analyzing URL...
             </span>
 
         </div>
@@ -2527,45 +2670,194 @@ window.analyzeURL = async function() {
 
     try {
 
-        const app =
-            await connectToCyberGuard();
-
-
-        /*
-           For now this uses the website endpoint.
-
-           If your Space has a separate URL endpoint,
-           change this to that endpoint name.
-        */
-
         const response =
-            await app.predict(
-                "/analyze_website",
-                [
-                    url
-                ]
+            await fetch(
+                API_BASE +
+                "/api/analyze/url",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            url: url
+                        })
+
+                }
             );
 
 
-        console.log(
-            "URL API response:",
-            response
-        );
+        const data =
+            await response.json();
 
 
-        result.innerHTML =
-            createThreatReport(
-                response,
-                "URL THREAT REPORT"
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "URL analysis failed."
             );
 
+        }
 
-    } catch (error) {
 
-        console.error(
-            "URL analysis error:",
-            error
-        );
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    URL THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+
+                    ${escapeHTML(
+                        data.risk_level ||
+                        "ANALYZED"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    URL
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.url ||
+                        url
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.status ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Risk Score
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.risk_score ??
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Risk Level
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.risk_level ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Possible Impersonation
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        data.possible_impersonated_brands
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Indicators
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        data.detected_indicators
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Recommendation
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.recommendation ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+    catch (error) {
+
+        console.error(error);
 
 
         result.innerHTML = `
@@ -2586,24 +2878,11 @@ window.analyzeURL = async function() {
             <div class="report-item">
 
                 <span>
-                    URL
-                </span>
-
-                <span>
-                    ${escapeHTML(url)}
-                </span>
-
-            </div>
-
-
-            <div class="report-item">
-
-                <span>
                     Status
                 </span>
 
                 <span>
-                    Analysis failed
+                    Backend connection failed
                 </span>
 
             </div>
@@ -2616,10 +2895,11 @@ window.analyzeURL = async function() {
                 </span>
 
                 <span>
+
                     ${escapeHTML(
-                        error.message ||
-                        "Unable to connect to AI engine."
+                        error.message
                     )}
+
                 </span>
 
             </div>
@@ -2628,16 +2908,14 @@ window.analyzeURL = async function() {
 
     }
 
-};
+}
 
 
-/*
-============================================================
-MODULE 3 — WEBSITE ANALYSIS
-============================================================
-*/
+/* =====================================================
+   WEBSITE ANALYSIS
+===================================================== */
 
-window.analyzeWebsite = async function() {
+async function analyzeWebsite() {
 
     const url =
         document
@@ -2683,24 +2961,11 @@ window.analyzeWebsite = async function() {
         <div class="report-item">
 
             <span>
-                Website
-            </span>
-
-            <span>
-                ${escapeHTML(url)}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
                 Status
             </span>
 
             <span>
-                Sending website to AI engine...
+                Analyzing website...
             </span>
 
         </div>
@@ -2710,38 +2975,211 @@ window.analyzeWebsite = async function() {
 
     try {
 
-        const app =
-            await connectToCyberGuard();
-
-
         const response =
-            await app.predict(
-                "/analyze_website",
-                [
-                    url
-                ]
+            await fetch(
+                API_BASE +
+                "/api/analyze/website",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            url: url
+                        })
+
+                }
             );
 
 
-        console.log(
-            "Website API response:",
-            response
-        );
+        const data =
+            await response.json();
 
 
-        result.innerHTML =
-            createThreatReport(
-                response,
-                "WEBSITE THREAT REPORT"
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Website analysis failed."
             );
 
+        }
 
-    } catch (error) {
 
-        console.error(
-            "Website analysis error:",
-            error
-        );
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    WEBSITE THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+
+                    ${escapeHTML(
+                        data.risk_level ||
+                        "ANALYZED"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    URL
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.url ||
+                        url
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.status ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Risk Score
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.risk_score ??
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Risk Level
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.risk_level ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Possible Impersonation
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        data.possible_impersonated_brands
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Website Indicators
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        data.website_indicators
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Detected Indicators
+                </span>
+
+                <span>
+
+                    ${formatArray(
+                        data.detected_indicators
+                    )}
+
+                </span>
+
+            </div>
+
+
+            <div class="report-item">
+
+                <span>
+                    Recommendation
+                </span>
+
+                <span>
+
+                    ${escapeHTML(
+                        data.recommendation ||
+                        "—"
+                    )}
+
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+    catch (error) {
+
+        console.error(error);
 
 
         result.innerHTML = `
@@ -2766,7 +3204,7 @@ window.analyzeWebsite = async function() {
                 </span>
 
                 <span>
-                    Website analysis failed
+                    Backend connection failed
                 </span>
 
             </div>
@@ -2779,10 +3217,11 @@ window.analyzeWebsite = async function() {
                 </span>
 
                 <span>
+
                     ${escapeHTML(
-                        error.message ||
-                        "Unable to connect to AI engine."
+                        error.message
                     )}
+
                 </span>
 
             </div>
@@ -2791,33 +3230,107 @@ window.analyzeWebsite = async function() {
 
     }
 
-};
+}
 
+
+/* =====================================================
+   ACCOUNT TAKEOVER
+===================================================== */
 
 /*
-============================================================
-INITIAL CONNECTION TEST
-============================================================
+    IMPORTANT:
+
+    Your current FastAPI index.py does NOT have:
+
+    /api/analyze/account
+
+    Therefore this module cannot perform real
+    backend analysis yet.
 */
 
-connectToCyberGuard()
-    .then(() => {
+function demoAccountAnalysis() {
 
-        console.log(
-            "CyberGuard AI backend ready."
+    const result =
+        document.getElementById(
+            "accountResult"
         );
 
-    })
-    .catch(error => {
 
-        console.warn(
-            "CyberGuard AI backend is not currently reachable.",
-            error
-        );
+    result.innerHTML = `
 
-    });
+        <div class="report-header">
+
+            <h3>
+                ACCOUNT THREAT REPORT
+            </h3>
+
+            <span class="risk-badge">
+                NOT CONNECTED
+            </span>
+
+        </div>
+
+
+        <div class="report-item">
+
+            <span>
+                Status
+            </span>
+
+            <span>
+                Account takeover analysis
+                endpoint is not implemented yet.
+            </span>
+
+        </div>
+
+
+        <div class="report-item">
+
+            <span>
+                Backend
+            </span>
+
+            <span>
+                /api/analyze/account does not
+                currently exist.
+            </span>
+
+        </div>
+
+
+        <div class="report-item">
+
+            <span>
+                Next Step
+            </span>
+
+            <span>
+                Add the account takeover
+                detection engine and API endpoint.
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =====================================================
+   FRONTEND INITIALIZATION
+===================================================== */
+
+console.log(
+    "CyberGuard frontend initialized."
+);
+
+console.log(
+    "API mode: relative Vercel API paths"
+);
 
 </script>
+
 
 </body>
 
