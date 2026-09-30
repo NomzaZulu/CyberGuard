@@ -17,9 +17,7 @@
 
     <title>CyberGuard — Threat Intelligence</title>
 
-
     <!-- Google Font -->
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
 
     <link
@@ -33,9 +31,7 @@
         rel="stylesheet"
     >
 
-
     <!-- CSS -->
-
     <link
         rel="stylesheet"
         href="style.css"
@@ -54,7 +50,6 @@
 <header class="navbar">
 
     <div class="navbar-inner">
-
 
         <!-- LOGO -->
 
@@ -243,7 +238,7 @@
                     <div class="terminal-line">
 
                         <span class="terminal-prefix">
-                            &gt;
+                            >
                         </span>
 
                         initializing threat engine...
@@ -282,7 +277,7 @@
                     <div class="terminal-line">
 
                         <span class="terminal-prefix">
-                            &gt;
+                            >
                         </span>
 
                         loading threat intelligence...
@@ -604,8 +599,6 @@
 
 
 
-        <!-- THREE MODULES -->
-
         <div class="module-grid">
 
 
@@ -615,7 +608,6 @@
                 class="module-card"
                 onclick="showPage('phishing')"
             >
-
 
                 <div class="module-number">
                     01
@@ -671,7 +663,6 @@
                     Open module →
                 </div>
 
-
             </article>
 
 
@@ -682,7 +673,6 @@
                 class="module-card"
                 onclick="showPage('account')"
             >
-
 
                 <div class="module-number">
                     02
@@ -733,7 +723,6 @@
                     Open module →
                 </div>
 
-
             </article>
 
 
@@ -744,7 +733,6 @@
                 class="module-card"
                 onclick="showPage('url')"
             >
-
 
                 <div class="module-number">
                     03
@@ -795,7 +783,6 @@
                     Open module →
                 </div>
 
-
             </article>
 
 
@@ -842,6 +829,7 @@
         </button>
 
 
+
         <div class="module-header">
 
 
@@ -865,7 +853,6 @@
                 QR codes and website content.
 
             </p>
-
 
         </div>
 
@@ -904,6 +891,7 @@
 
                 <button
                     class="btn btn-primary"
+                    id="messageAnalyzeBtn"
                     onclick="analyzePhishing()"
                 >
 
@@ -941,6 +929,7 @@
 
                 <div
                     class="upload-area"
+                    id="qrUploadArea"
                     onclick="document.getElementById('qrInput').click()"
                 >
 
@@ -973,6 +962,7 @@
 
 
         </div>
+
 
 
         <!-- RESULT -->
@@ -1065,6 +1055,7 @@
         </button>
 
 
+
         <div class="module-header">
 
 
@@ -1124,6 +1115,7 @@
 
                     <input
                         type="number"
+                        id="failedLogins"
                         placeholder="e.g. 8"
                     >
 
@@ -1138,6 +1130,7 @@
 
                     <input
                         type="text"
+                        id="loginLocation"
                         placeholder="e.g. Mumbai"
                     >
 
@@ -1186,6 +1179,7 @@
 
                     <input
                         type="text"
+                        id="deviceInput"
                         placeholder="New / Unknown device"
                     >
 
@@ -1200,6 +1194,7 @@
 
                     <input
                         type="text"
+                        id="sessionInput"
                         placeholder="Describe activity"
                     >
 
@@ -1311,6 +1306,7 @@
         </button>
 
 
+
         <div class="module-header">
 
 
@@ -1342,6 +1338,8 @@
         <div class="url-scanner">
 
 
+            <!-- URL ANALYZER -->
+
             <div class="scanner-panel">
 
 
@@ -1372,6 +1370,7 @@
 
                 <button
                     class="btn btn-primary"
+                    id="urlAnalyzeBtn"
                     onclick="analyzeURL()"
                 >
 
@@ -1383,6 +1382,8 @@
             </div>
 
 
+
+            <!-- WEBSITE ANALYZER -->
 
             <div class="scanner-panel">
 
@@ -1408,12 +1409,14 @@
 
                 <input
                     type="url"
+                    id="websiteInput"
                     placeholder="https://suspicious-site.com"
                 >
 
 
                 <button
                     class="btn btn-secondary"
+                    id="websiteAnalyzeBtn"
                     onclick="analyzeWebsite()"
                 >
 
@@ -1538,6 +1541,7 @@
             </div>
 
 
+
             <div class="footer-links">
 
 
@@ -1569,6 +1573,7 @@
                     </a>
 
                 </div>
+
 
 
                 <div class="footer-column">
@@ -1606,6 +1611,7 @@
         </div>
 
 
+
         <div class="footer-bottom">
 
             <span>
@@ -1629,19 +1635,59 @@
      JAVASCRIPT
 ===================================================== -->
 
-<script>
+<script type="module">
+
+/*
+===========================================================
+   HUGGING FACE GRADIO CLIENT
+===========================================================
+*/
+
+import {
+    Client,
+    handle_file
+} from "https://cdn.jsdelivr.net/npm/@gradio/client/+esm";
 
 
-/* =====================================================
+/*
+===========================================================
+   HUGGING FACE SPACE
+===========================================================
+*/
+
+const HF_SPACE =
+    "saswatpatra/cyberguard_phishing";
+
+
+let cyberGuardClient = null;
+
+
+/*
+===========================================================
+   CONNECT TO HUGGING FACE
+===========================================================
+*/
+
+async function getClient() {
+
+    if (cyberGuardClient) {
+        return cyberGuardClient;
+    }
+
+    cyberGuardClient =
+        await Client.connect(HF_SPACE);
+
+    return cyberGuardClient;
+}
+
+
+/*
+===========================================================
    PAGE NAVIGATION
-===================================================== */
+===========================================================
+*/
 
-function showPage(pageId) {
-
-
-    /*
-       Hide every page
-    */
+window.showPage = function(pageId) {
 
     const pages =
         document.querySelectorAll(".page");
@@ -1649,14 +1695,12 @@ function showPage(pageId) {
 
     pages.forEach(page => {
 
-        page.classList.remove("active-page");
+        page.classList.remove(
+            "active-page"
+        );
 
     });
 
-
-    /*
-       Show selected page
-    */
 
     const selectedPage =
         document.getElementById(pageId);
@@ -1671,10 +1715,6 @@ function showPage(pageId) {
     }
 
 
-    /*
-       Scroll to top
-    */
-
     window.scrollTo({
 
         top: 0,
@@ -1683,21 +1723,163 @@ function showPage(pageId) {
 
     });
 
+};
+
+
+
+/*
+===========================================================
+   RESULT FORMATTER
+===========================================================
+*/
+
+function formatResult(data) {
+
+    if (data === null || data === undefined) {
+
+        return "No result returned.";
+
+    }
+
+
+    if (typeof data === "string") {
+
+        return data;
+
+    }
+
+
+    try {
+
+        return JSON.stringify(
+            data,
+            null,
+            2
+        );
+
+    } catch {
+
+        return String(data);
+
+    }
+
 }
 
 
 
-/* =====================================================
-   PHISHING DEMO
-===================================================== */
+/*
+===========================================================
+   CREATE RESULT REPORT
+===========================================================
+*/
 
-function analyzePhishing() {
+function displayBackendResult(
+    container,
+    title,
+    result,
+    type = "ANALYZED"
+) {
+
+    const formatted =
+        formatResult(result);
+
+
+    container.innerHTML = "";
+
+
+    const header =
+        document.createElement("div");
+
+    header.className =
+        "report-header";
+
+
+    const heading =
+        document.createElement("h3");
+
+    heading.textContent =
+        title;
+
+
+    const badge =
+        document.createElement("span");
+
+    badge.className =
+        "risk-badge";
+
+    badge.textContent =
+        type;
+
+
+    header.appendChild(heading);
+
+    header.appendChild(badge);
+
+    container.appendChild(header);
+
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "report-item";
+
+
+    const label =
+        document.createElement("span");
+
+    label.textContent =
+        "Analysis Result";
+
+
+    const value =
+        document.createElement("span");
+
+
+    /*
+       Use textContent so that
+       backend/user input cannot
+       inject HTML into the page.
+    */
+
+    value.textContent =
+        formatted;
+
+
+    value.style.whiteSpace =
+        "pre-wrap";
+
+    value.style.maxWidth =
+        "70%";
+
+    value.style.textAlign =
+        "right";
+
+
+    item.appendChild(label);
+
+    item.appendChild(value);
+
+    container.appendChild(item);
+
+}
+
+
+
+/*
+===========================================================
+   MESSAGE ANALYSIS
+===========================================================
+*/
+
+window.analyzePhishing = async function() {
 
 
     const text =
-        document.getElementById(
-            "phishingText"
-        ).value.trim();
+        document
+            .getElementById("phishingText")
+            .value
+            .trim();
 
 
     if (!text) {
@@ -1717,83 +1899,928 @@ function analyzePhishing() {
         );
 
 
-    result.innerHTML = `
-
-        <div class="report-header">
-
-            <h3>
-                CYBERGUARD THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                ANALYZED
-            </span>
-
-        </div>
+    const button =
+        document.getElementById(
+            "messageAnalyzeBtn"
+        );
 
 
-        <div class="report-item">
-
-            <span>
-                Status
-            </span>
-
-            <span>
-                Analysis completed
-            </span>
-
-        </div>
+    try {
 
 
-        <div class="report-item">
+        button.disabled = true;
 
-            <span>
-                Input type
-            </span>
-
-            <span>
-                Message
-            </span>
-
-        </div>
+        button.textContent =
+            "Analyzing...";
 
 
-        <div class="report-item">
+        result.innerHTML = `
 
-            <span>
-                ML engine
-            </span>
+            <div class="report-header">
 
-            <span>
-                Ready for backend
-            </span>
+                <h3>
+                    CYBERGUARD THREAT REPORT
+                </h3>
 
-        </div>
+                <span class="risk-badge">
+                    ANALYZING
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Connecting to AI engine...
+                </span>
+
+            </div>
+
+        `;
 
 
-        <div class="report-item">
+        const client =
+            await getClient();
 
-            <span>
-                Result
-            </span>
 
-            <span>
-                Backend connection required
-            </span>
+        const response =
+            await client.predict(
+                "/analyze_message",
+                {
+                    message: text
+                }
+            );
 
-        </div>
 
-    `;
+        displayBackendResult(
+
+            result,
+
+            "CYBERGUARD THREAT REPORT",
+
+            response.data,
+
+            "ANALYZED"
+
+        );
+
+
+    } catch (error) {
+
+
+        console.error(
+            "Message analysis error:",
+            error
+        );
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    CYBERGUARD THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ERROR
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Analysis failed
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Error
+                </span>
+
+                <span>
+                    ${escapeHTML(error.message || "Unknown error")}
+                </span>
+
+            </div>
+
+        `;
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Analyze Message →";
+
+    }
+
+};
+
+
+
+/*
+===========================================================
+   QR CODE ANALYSIS
+===========================================================
+*/
+
+const qrInput =
+    document.getElementById(
+        "qrInput"
+    );
+
+
+if (qrInput) {
+
+
+    qrInput.addEventListener(
+        "change",
+        async function() {
+
+
+            if (
+                !qrInput.files ||
+                qrInput.files.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            const file =
+                qrInput.files[0];
+
+
+            const uploadArea =
+                document.getElementById(
+                    "qrUploadArea"
+                );
+
+
+            if (uploadArea) {
+
+                uploadArea.querySelector(
+                    "h4"
+                ).textContent =
+                    file.name;
+
+
+                uploadArea.querySelector(
+                    "p"
+                ).textContent =
+                    "Analyzing QR image...";
+
+            }
+
+
+            const result =
+                document.getElementById(
+                    "phishingResult"
+                );
+
+
+            try {
+
+
+                result.innerHTML = `
+
+                    <div class="report-header">
+
+                        <h3>
+                            CYBERGUARD QR THREAT REPORT
+                        </h3>
+
+                        <span class="risk-badge">
+                            ANALYZING
+                        </span>
+
+                    </div>
+
+                    <div class="report-item">
+
+                        <span>
+                            Status
+                        </span>
+
+                        <span>
+                            Scanning QR code...
+                        </span>
+
+                    </div>
+
+                `;
+
+
+                const client =
+                    await getClient();
+
+
+                const response =
+                    await client.predict(
+                        "/scan_qr",
+                        {
+                            image:
+                                handle_file(file)
+                        }
+                    );
+
+
+                displayBackendResult(
+
+                    result,
+
+                    "CYBERGUARD QR THREAT REPORT",
+
+                    response.data,
+
+                    "ANALYZED"
+
+                );
+
+
+                if (uploadArea) {
+
+                    uploadArea.querySelector(
+                        "p"
+                    ).textContent =
+                        "QR analysis completed";
+
+                }
+
+
+            } catch (error) {
+
+
+                console.error(
+                    "QR analysis error:",
+                    error
+                );
+
+
+                result.innerHTML = `
+
+                    <div class="report-header">
+
+                        <h3>
+                            CYBERGUARD QR THREAT REPORT
+                        </h3>
+
+                        <span class="risk-badge">
+                            ERROR
+                        </span>
+
+                    </div>
+
+                    <div class="report-item">
+
+                        <span>
+                            Status
+                        </span>
+
+                        <span>
+                            QR analysis failed
+                        </span>
+
+                    </div>
+
+                    <div class="report-item">
+
+                        <span>
+                            Error
+                        </span>
+
+                        <span>
+                            ${escapeHTML(error.message || "Unknown error")}
+                        </span>
+
+                    </div>
+
+                `;
+
+
+                if (uploadArea) {
+
+                    uploadArea.querySelector(
+                        "p"
+                    ).textContent =
+                        "QR analysis failed";
+
+                }
+
+            }
+
+        }
+    );
 
 }
 
 
 
-/* =====================================================
-   ACCOUNT DEMO
-===================================================== */
+/*
+===========================================================
+   URL ANALYSIS
+===========================================================
+*/
 
-function demoAccountAnalysis() {
+window.analyzeURL = async function() {
+
+
+    const url =
+        document
+            .getElementById("urlInput")
+            .value
+            .trim();
+
+
+    if (!url) {
+
+        alert(
+            "Please enter a URL first."
+        );
+
+        return;
+
+    }
+
+
+    const result =
+        document.getElementById(
+            "urlResult"
+        );
+
+
+    const button =
+        document.getElementById(
+            "urlAnalyzeBtn"
+        );
+
+
+    try {
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "Analyzing...";
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    URL THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ANALYZING
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    URL
+                </span>
+
+                <span>
+                    ${escapeHTML(url)}
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Connecting to URL engine...
+                </span>
+
+            </div>
+
+        `;
+
+
+        const client =
+            await getClient();
+
+
+        const response =
+            await client.predict(
+                "/analyze_website",
+                {
+                    url: url
+                }
+            );
+
+
+        result.innerHTML = "";
+
+
+        const header =
+            document.createElement("div");
+
+        header.className =
+            "report-header";
+
+
+        const heading =
+            document.createElement("h3");
+
+        heading.textContent =
+            "URL THREAT REPORT";
+
+
+        const badge =
+            document.createElement("span");
+
+        badge.className =
+            "risk-badge";
+
+        badge.textContent =
+            "ANALYZED";
+
+
+        header.appendChild(heading);
+
+        header.appendChild(badge);
+
+        result.appendChild(header);
+
+
+        /*
+           URL
+        */
+
+        const urlItem =
+            document.createElement("div");
+
+        urlItem.className =
+            "report-item";
+
+
+        const urlLabel =
+            document.createElement("span");
+
+        urlLabel.textContent =
+            "URL";
+
+
+        const urlValue =
+            document.createElement("span");
+
+        urlValue.textContent =
+            url;
+
+
+        urlItem.appendChild(urlLabel);
+
+        urlItem.appendChild(urlValue);
+
+        result.appendChild(urlItem);
+
+
+        /*
+           Backend result
+        */
+
+        const resultItem =
+            document.createElement("div");
+
+        resultItem.className =
+            "report-item";
+
+
+        const resultLabel =
+            document.createElement("span");
+
+        resultLabel.textContent =
+            "Analysis Result";
+
+
+        const resultValue =
+            document.createElement("span");
+
+        resultValue.textContent =
+            formatResult(response.data);
+
+        resultValue.style.whiteSpace =
+            "pre-wrap";
+
+        resultValue.style.maxWidth =
+            "70%";
+
+        resultValue.style.textAlign =
+            "right";
+
+
+        resultItem.appendChild(
+            resultLabel
+        );
+
+        resultItem.appendChild(
+            resultValue
+        );
+
+        result.appendChild(
+            resultItem
+        );
+
+
+    } catch (error) {
+
+
+        console.error(
+            "URL analysis error:",
+            error
+        );
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    URL THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ERROR
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    URL analysis failed
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Error
+                </span>
+
+                <span>
+                    ${escapeHTML(error.message || "Unknown error")}
+                </span>
+
+            </div>
+
+        `;
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Analyze URL →";
+
+    }
+
+};
+
+
+
+/*
+===========================================================
+   WEBSITE ANALYSIS
+===========================================================
+*/
+
+window.analyzeWebsite = async function() {
+
+
+    const input =
+        document.getElementById(
+            "websiteInput"
+        );
+
+
+    const url =
+        input.value.trim();
+
+
+    if (!url) {
+
+        alert(
+            "Please enter a website URL first."
+        );
+
+        return;
+
+    }
+
+
+    const result =
+        document.getElementById(
+            "urlResult"
+        );
+
+
+    const button =
+        document.getElementById(
+            "websiteAnalyzeBtn"
+        );
+
+
+    try {
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "Analyzing...";
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    WEBSITE THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ANALYZING
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Website
+                </span>
+
+                <span>
+                    ${escapeHTML(url)}
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Inspecting website...
+                </span>
+
+            </div>
+
+        `;
+
+
+        const client =
+            await getClient();
+
+
+        const response =
+            await client.predict(
+                "/analyze_website",
+                {
+                    url: url
+                }
+            );
+
+
+        result.innerHTML = "";
+
+
+        const header =
+            document.createElement("div");
+
+        header.className =
+            "report-header";
+
+
+        const heading =
+            document.createElement("h3");
+
+        heading.textContent =
+            "WEBSITE THREAT REPORT";
+
+
+        const badge =
+            document.createElement("span");
+
+        badge.className =
+            "risk-badge";
+
+        badge.textContent =
+            "ANALYZED";
+
+
+        header.appendChild(heading);
+
+        header.appendChild(badge);
+
+        result.appendChild(header);
+
+
+        /*
+           Website URL
+        */
+
+        const urlItem =
+            document.createElement("div");
+
+        urlItem.className =
+            "report-item";
+
+
+        const urlLabel =
+            document.createElement("span");
+
+        urlLabel.textContent =
+            "Website";
+
+
+        const urlValue =
+            document.createElement("span");
+
+        urlValue.textContent =
+            url;
+
+
+        urlItem.appendChild(urlLabel);
+
+        urlItem.appendChild(urlValue);
+
+        result.appendChild(urlItem);
+
+
+        /*
+           Backend result
+        */
+
+        const analysisItem =
+            document.createElement("div");
+
+        analysisItem.className =
+            "report-item";
+
+
+        const analysisLabel =
+            document.createElement("span");
+
+        analysisLabel.textContent =
+            "Analysis Result";
+
+
+        const analysisValue =
+            document.createElement("span");
+
+        analysisValue.textContent =
+            formatResult(response.data);
+
+        analysisValue.style.whiteSpace =
+            "pre-wrap";
+
+        analysisValue.style.maxWidth =
+            "70%";
+
+        analysisValue.style.textAlign =
+            "right";
+
+
+        analysisItem.appendChild(
+            analysisLabel
+        );
+
+        analysisItem.appendChild(
+            analysisValue
+        );
+
+        result.appendChild(
+            analysisItem
+        );
+
+
+    } catch (error) {
+
+
+        console.error(
+            "Website analysis error:",
+            error
+        );
+
+
+        result.innerHTML = `
+
+            <div class="report-header">
+
+                <h3>
+                    WEBSITE THREAT REPORT
+                </h3>
+
+                <span class="risk-badge">
+                    ERROR
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Status
+                </span>
+
+                <span>
+                    Website analysis failed
+                </span>
+
+            </div>
+
+            <div class="report-item">
+
+                <span>
+                    Error
+                </span>
+
+                <span>
+                    ${escapeHTML(error.message || "Unknown error")}
+                </span>
+
+            </div>
+
+        `;
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Analyze Website →";
+
+    }
+
+};
+
+
+
+/*
+===========================================================
+   ACCOUNT TAKEOVER DEMO
+===========================================================
+*/
+
+window.demoAccountAnalysis = function() {
+
+
+    const failedLogins =
+        document.getElementById(
+            "failedLogins"
+        ).value;
+
+
+    const location =
+        document.getElementById(
+            "loginLocation"
+        ).value;
+
+
+    const device =
+        document.getElementById(
+            "deviceInput"
+        ).value;
+
+
+    const session =
+        document.getElementById(
+            "sessionInput"
+        ).value;
 
 
     const result =
@@ -1816,7 +2843,6 @@ function demoAccountAnalysis() {
 
         </div>
 
-
         <div class="report-item">
 
             <span>
@@ -1829,215 +2855,86 @@ function demoAccountAnalysis() {
 
         </div>
 
-
         <div class="report-item">
 
             <span>
-                Behaviour
+                Failed logins
             </span>
 
             <span>
-                Awaiting detection engine
+                ${escapeHTML(failedLogins || "Not provided")}
             </span>
 
         </div>
 
+        <div class="report-item">
+
+            <span>
+                Login location
+            </span>
+
+            <span>
+                ${escapeHTML(location || "Not provided")}
+            </span>
+
+        </div>
 
         <div class="report-item">
 
             <span>
-                Recommendation
+                Device
             </span>
 
             <span>
-                Backend connection required
+                ${escapeHTML(device || "Not provided")}
+            </span>
+
+        </div>
+
+        <div class="report-item">
+
+            <span>
+                Session behaviour
+            </span>
+
+            <span>
+                ${escapeHTML(session || "Not provided")}
+            </span>
+
+        </div>
+
+        <div class="report-item">
+
+            <span>
+                Detection engine
+            </span>
+
+            <span>
+                Backend integration pending
             </span>
 
         </div>
 
     `;
 
-}
+};
 
 
 
-/* =====================================================
-   URL ANALYSIS DEMO
-===================================================== */
+/*
+===========================================================
+   HTML ESCAPE
+===========================================================
+*/
 
-function analyzeURL() {
+function escapeHTML(value) {
 
-
-    const url =
-        document.getElementById(
-            "urlInput"
-        ).value.trim();
-
-
-    if (!url) {
-
-        alert(
-            "Please enter a URL first."
-        );
-
-        return;
-
-    }
-
-
-    document.getElementById(
-        "resultURL"
-    ).textContent = url;
-
-
-    const result =
-        document.getElementById(
-            "urlResult"
-        );
-
-
-    result.innerHTML = `
-
-        <div class="report-header">
-
-            <h3>
-                URL THREAT REPORT
-            </h3>
-
-            <span class="risk-badge">
-                ANALYZED
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                URL
-            </span>
-
-            <span>
-                ${url}
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                URL engine
-            </span>
-
-            <span>
-                Ready for backend
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Indicators
-            </span>
-
-            <span>
-                Awaiting analysis
-            </span>
-
-        </div>
-
-
-        <div class="report-item">
-
-            <span>
-                Recommendation
-            </span>
-
-            <span>
-                Backend connection required
-            </span>
-
-        </div>
-
-    `;
-
-}
-
-
-
-/* =====================================================
-   WEBSITE DEMO
-===================================================== */
-
-function analyzeWebsite() {
-
-
-    alert(
-        "Website analysis interface ready. Connect this button to the FastAPI website-analysis endpoint."
-    );
-
-}
-
-
-
-/* =====================================================
-   QR FILE SELECTION
-===================================================== */
-
-const qrInput =
-    document.getElementById(
-        "qrInput"
-    );
-
-
-if (qrInput) {
-
-
-    qrInput.addEventListener(
-        "change",
-        function () {
-
-
-            if (
-                qrInput.files &&
-                qrInput.files.length > 0
-            ) {
-
-
-                const file =
-                    qrInput.files[0];
-
-
-                const uploadArea =
-                    qrInput.closest(
-                        ".upload-area"
-                    );
-
-
-                if (uploadArea) {
-
-
-                    uploadArea.querySelector(
-                        "h4"
-                    ).textContent =
-                        file.name;
-
-
-                    uploadArea.querySelector(
-                        "p"
-                    ).textContent =
-                        "QR image selected";
-
-
-                }
-
-            }
-
-        }
-    );
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
 
