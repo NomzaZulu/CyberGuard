@@ -1,848 +1,485 @@
 /* ============================================================
-   NORMALIZE RESULT
-   Handles nested CyberGuard engine responses
+   CYBERGUARD - UI EVENT RECOVERY
+   Keeps existing backend/engine logic untouched.
    ============================================================ */
 
-function normalizeResult(data) {
+document.addEventListener("DOMContentLoaded", () => {
 
-    let value = unwrapGradioData(data);
+    console.log("[CyberGuard] UI event recovery initialized.");
 
-    /* If the engine returns JSON as a string */
-    if (typeof value === "string") {
+    /* --------------------------------------------------------
+       SIDEBAR NAVIGATION
+       -------------------------------------------------------- */
 
-        const parsed = tryParseJson(value);
+    document.querySelectorAll(".nav-item").forEach((button) => {
 
-        if (parsed !== null) {
-            value = parsed;
-        }
-    }
+        button.onclick = function () {
 
-    const result = {
-        raw: value,
+            const view = this.dataset.view;
 
-        label: null,
-        confidence: null,
+            if (!view) return;
 
-        indicators: [],
-
-        message: null,
-        threat: null,
-
-        status: null,
-        riskLevel: null,
-        riskScore: null,
-
-        prediction: null,
-        recommendation: null,
-
-        categories: {},
-        payload: null,
-        payloadType: null
-    };
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return result;
-    }
-
-    /*
-     * Gradio may return:
-     *
-     * [
-     *   {
-     *      payload: "...",
-     *      payload_type: "TEXT",
-     *      analysis: {
-     *          ...
-     *      }
-     *   }
-     * ]
-     */
-
-    let object = value;
-
-    if (Array.isArray(value)) {
-
-        result.indicators =
-            flattenStrings(value);
-
-        object =
-            value.find(
-                item =>
-                    item &&
-                    typeof item === "object"
-            ) || value[0];
-    }
-
-    if (
-        !object ||
-        typeof object !== "object"
-    ) {
-        result.message =
-            String(object);
-
-        result.label =
-            String(object);
-
-        return result;
-    }
-
-    /*
-     * Extract top-level payload information
-     */
-
-    if (object.payload !== undefined) {
-        result.payload =
-            object.payload;
-    }
-
-    if (object.payload_type !== undefined) {
-        result.payloadType =
-            object.payload_type;
-    }
-
-    /*
-     * IMPORTANT:
-     * The actual CyberGuard engine response puts
-     * the useful information inside "analysis".
-     */
-
-    const analysis =
-        object.analysis &&
-        typeof object.analysis === "object"
-            ? object.analysis
-            : object;
-
-    mergeObjectFields(
-        result,
-        analysis
-    );
-
-    /*
-     * Also inspect top-level fields in case another
-     * endpoint returns them there.
-     */
-
-    if (analysis !== object) {
-        mergeObjectFields(
-            result,
-            object
-        );
-    }
-
-    /*
-     * Explicit engine fields
-     */
-
-    if (
-        analysis.status !== undefined
-    ) {
-        result.status =
-            String(analysis.status);
-    }
-
-    if (
-        analysis.risk_level !== undefined
-    ) {
-        result.riskLevel =
-            String(analysis.risk_level);
-    }
-
-    if (
-        analysis.risk_score !== undefined
-    ) {
-        const score =
-            Number(analysis.risk_score);
-
-        if (Number.isFinite(score)) {
-            result.riskScore = score;
-        }
-    }
-
-    if (
-        analysis.model_prediction !== undefined
-    ) {
-        result.prediction =
-            String(
-                analysis.model_prediction
-            );
-    }
-
-    if (
-        analysis.model_confidence !== undefined
-    ) {
-        const confidence =
-            Number(
-                analysis.model_confidence
-            );
-
-        if (Number.isFinite(confidence)) {
-            result.confidence =
-                confidence;
-        }
-    }
-
-    if (
-        analysis.recommendation !== undefined
-    ) {
-        result.recommendation =
-            String(
-                analysis.recommendation
-            );
-    }
-
-    if (
-        analysis.detected_categories !== undefined
-    ) {
-        result.categories =
-            analysis.detected_categories;
-    }
-
-    /*
-     * Better primary label
-     */
-
-    if (
-        result.prediction
-    ) {
-        result.label =
-            result.prediction;
-    }
-
-    /*
-     * Better message
-     */
-
-    if (
-        !result.message &&
-        result.status
-    ) {
-        result.message =
-            result.status;
-    }
-
-    /*
-     * Recommendation should appear as an
-     * indicator rather than raw JSON.
-     */
-
-    if (
-        result.recommendation
-    ) {
-        result.indicators.push(
-            `Recommendation: ${result.recommendation}`
-        );
-    }
-
-    /*
-     * Risk level
-     */
-
-    if (
-        result.riskLevel
-    ) {
-        result.indicators.push(
-            `Risk Level: ${result.riskLevel}`
-        );
-    }
-
-    /*
-     * Status
-     */
-
-    if (
-        result.status
-    ) {
-        result.indicators.push(
-            `Status: ${result.status}`
-        );
-    }
-
-    /*
-     * Remove duplicates
-     */
-
-    result.indicators = [
-        ...new Set(
-            result.indicators
-                .filter(Boolean)
-        )
-    ];
-
-    return result;
-}
-
-
-/* ============================================================
-   MERGE OBJECT FIELDS
-   ============================================================ */
-
-function mergeObjectFields(
-    result,
-    object
-) {
-
-    if (
-        !object ||
-        typeof object !== "object"
-    ) {
-        return;
-    }
+            if (typeof navigateTo === "function") {
+                navigateTo(view);
+            }
+        };
+    });
 
 
     /* --------------------------------------------------------
-       LABEL / CLASSIFICATION
+       BUTTONS THAT OPEN A VIEW
        -------------------------------------------------------- */
 
-    const labelKeys = [
-        "label",
-        "prediction",
-        "predicted_label",
-        "class",
-        "category",
-        "result",
-        "status",
-        "threat"
-    ];
+    document.querySelectorAll("[data-view-target]").forEach((button) => {
 
-    for (
-        const key of labelKeys
-    ) {
+        button.onclick = function () {
 
-        if (
-            object[key] !== undefined &&
-            object[key] !== null &&
-            typeof object[key] !== "object"
-        ) {
+            const target = this.dataset.viewTarget;
 
-            if (!result.label) {
+            if (!target) return;
 
-                result.label =
-                    String(
-                        object[key]
-                    );
+            if (typeof navigateTo === "function") {
+                navigateTo(target);
+            }
+        };
+    });
+
+
+    /* --------------------------------------------------------
+       PHISHING ANALYSIS TABS
+       -------------------------------------------------------- */
+
+    document.querySelectorAll(".analysis-tab").forEach((button) => {
+
+        button.onclick = function () {
+
+            const analysis =
+                this.dataset.analysis;
+
+            if (!analysis) return;
+
+            if (typeof activateAnalysis === "function") {
+                activateAnalysis(analysis);
+            }
+        };
+    });
+
+
+    /* --------------------------------------------------------
+       QUICK ACTIONS
+       -------------------------------------------------------- */
+
+    document.querySelectorAll(".quick-action").forEach((button) => {
+
+        button.onclick = function () {
+
+            const analysis =
+                this.dataset.analysis || "message";
+
+            if (typeof navigateTo === "function") {
+                navigateTo("phishing");
             }
 
-            break;
-        }
-    }
-
-
-    /* --------------------------------------------------------
-       CONFIDENCE
-       -------------------------------------------------------- */
-
-    const confidenceKeys = [
-        "confidence",
-        "score",
-        "probability",
-        "risk_score",
-        "phishing_probability",
-        "model_confidence"
-    ];
-
-    for (
-        const key of confidenceKeys
-    ) {
-
-        if (
-            object[key] !== undefined &&
-            object[key] !== null
-        ) {
-
-            const number =
-                Number(
-                    object[key]
-                );
-
-            if (
-                Number.isFinite(number)
-            ) {
-
-                /*
-                 * Don't overwrite an already
-                 * meaningful model confidence
-                 */
-
-                if (
-                    result.confidence === null ||
-                    key === "model_confidence"
-                ) {
-                    result.confidence =
-                        number;
-                }
-
-                break;
+            if (typeof activateAnalysis === "function") {
+                activateAnalysis(analysis);
             }
-        }
-    }
+        };
+    });
 
 
     /* --------------------------------------------------------
-       INDICATORS / FINDINGS
+       OPEN PHISHING SCANNER
        -------------------------------------------------------- */
 
-    const indicatorKeys = [
-        "indicators",
-        "features",
-        "reasons",
-        "signals",
-        "findings",
-        "detections"
-    ];
+    const openPhishing =
+        document.querySelector("#openPhishingButton");
 
-    for (
-        const key of indicatorKeys
-    ) {
+    if (openPhishing) {
 
-        if (
-            object[key] !== undefined &&
-            object[key] !== null
-        ) {
+        openPhishing.onclick = function () {
 
-            result.indicators.push(
-                ...flattenStrings(
-                    object[key]
-                )
-            );
-        }
-    }
-
-
-    /* --------------------------------------------------------
-       MESSAGE / EXPLANATION
-       -------------------------------------------------------- */
-
-    const messageKeys = [
-        "message",
-        "explanation",
-        "description",
-        "details",
-        "analysis"
-    ];
-
-    for (
-        const key of messageKeys
-    ) {
-
-        if (
-            typeof object[key] === "string"
-        ) {
-
-            if (!result.message) {
-
-                result.message =
-                    object[key];
+            if (typeof navigateTo === "function") {
+                navigateTo("phishing");
             }
 
-            break;
-        }
-    }
-
-
-    /* --------------------------------------------------------
-       THREAT
-       -------------------------------------------------------- */
-
-    if (
-        object.threat !== undefined &&
-        object.threat !== null &&
-        typeof object.threat !== "object"
-    ) {
-
-        result.threat =
-            String(
-                object.threat
-            );
-    }
-
-    if (
-        !result.threat &&
-        result.label
-    ) {
-
-        result.threat =
-            result.label;
-    }
-}
-
-
-/* ============================================================
-   DETERMINE RISK
-   ============================================================ */
-
-function determineRisk(
-    normalized
-) {
-
-    /*
-     * FIRST:
-     * Trust the explicit risk_level returned
-     * by the CyberGuard engine.
-     */
-
-    if (
-        normalized.riskLevel
-    ) {
-
-        const risk =
-            normalized.riskLevel
-                .toLowerCase();
-
-        if (
-            risk.includes("critical") ||
-            risk.includes("high")
-        ) {
-
-            return {
-                className: "danger",
-
-                label: "HIGH RISK",
-
-                title:
-                    "Potential phishing threat detected",
-
-                description:
-                    normalized.message ||
-                    "The CyberGuard engine identified indicators associated with a potentially dangerous input."
-            };
-        }
-
-        if (
-            risk.includes("medium") ||
-            risk.includes("moderate")
-        ) {
-
-            return {
-                className: "warning",
-
-                label: "REVIEW",
-
-                title:
-                    "Further review recommended",
-
-                description:
-                    normalized.message ||
-                    "The analysis contains signals that should be reviewed before treating the input as safe."
-            };
-        }
-
-        if (
-            risk.includes("low") ||
-            risk.includes("safe")
-        ) {
-
-            return {
-                className: "safe",
-
-                label: "LOW RISK",
-
-                title:
-                    "No immediate threat detected",
-
-                description:
-                    normalized.message ||
-                    "The CyberGuard engine did not identify strong indicators of an immediate threat."
-            };
-        }
-    }
-
-
-    /*
-     * SECOND:
-     * Trust the model prediction.
-     */
-
-    if (
-        normalized.prediction
-    ) {
-
-        const prediction =
-            normalized.prediction
-                .toLowerCase();
-
-        if (
-            prediction.includes("phishing") ||
-            prediction.includes("malicious") ||
-            prediction.includes("spam") ||
-            prediction.includes("danger")
-        ) {
-
-            return {
-                className: "danger",
-
-                label: "HIGH RISK",
-
-                title:
-                    "Potential phishing threat detected",
-
-                description:
-                    normalized.message ||
-                    "The detection model classified this input as potentially malicious."
-            };
-        }
-
-        if (
-            prediction.includes("benign") ||
-            prediction.includes("safe") ||
-            prediction.includes("legitimate") ||
-            prediction.includes("ham")
-        ) {
-
-            return {
-                className: "safe",
-
-                label: "LOW RISK",
-
-                title:
-                    "No immediate threat detected",
-
-                description:
-                    normalized.message ||
-                    "The detection model classified this input as benign."
-            };
-        }
-    }
-
-
-    /*
-     * THIRD:
-     * Fall back to the existing confidence logic.
-     */
-
-    if (
-        normalized.confidence !== null
-    ) {
-
-        const confidence =
-            normalizeConfidence(
-                normalized.confidence
-            );
-
-        if (
-            confidence >= 0.75
-        ) {
-
-            return {
-                className: "danger",
-
-                label: "HIGH RISK",
-
-                title:
-                    "High-confidence detection",
-
-                description:
-                    "The detection engine returned a high-confidence threat classification."
-            };
-        }
-
-        if (
-            confidence >= 0.45
-        ) {
-
-            return {
-                className: "warning",
-
-                label: "REVIEW",
-
-                title:
-                    "Further review recommended",
-
-                description:
-                    "The result contains signals that should be reviewed before treating the input as safe."
-            };
-        }
-
-        return {
-            className: "safe",
-
-            label: "LOW RISK",
-
-            title:
-                "No immediate threat detected",
-
-            description:
-                "The detection engine returned a lower-risk classification."
+            if (typeof activateAnalysis === "function") {
+                activateAnalysis("message");
+            }
         };
     }
 
 
-    /*
-     * Final fallback
-     */
+    /* --------------------------------------------------------
+       MESSAGE SCAN
+       -------------------------------------------------------- */
 
-    return {
-        className: "warning",
+    const scanMessage =
+        document.querySelector("#scanMessageButton");
 
-        label: "REVIEW",
+    if (scanMessage) {
 
-        title:
-            "Analysis completed",
+        scanMessage.onclick = function () {
 
-        description:
-            normalized.message ||
-            "The engine returned a result. Review the available indicators before making a decision."
-    };
-}
-
-
-/* ============================================================
-   BUILD USER-FRIENDLY INDICATORS
-   ============================================================ */
-
-function buildIndicators(
-    normalized
-) {
-
-    const indicators = [];
-
-
-    /*
-     * Classification
-     */
-
-    if (
-        normalized.prediction
-    ) {
-
-        indicators.push(
-            `Detection: ${normalized.prediction}`
-        );
-
-    } else if (
-        normalized.label
-    ) {
-
-        indicators.push(
-            `Classification: ${normalized.label}`
-        );
+            if (typeof analyzeMessage === "function") {
+                analyzeMessage();
+            }
+        };
     }
 
 
-    /*
-     * Status
-     */
+    /* --------------------------------------------------------
+       CLEAR MESSAGE
+       -------------------------------------------------------- */
 
-    if (
-        normalized.status
-    ) {
+    const clearMessage =
+        document.querySelector("#clearMessageButton");
 
-        indicators.push(
-            `Status: ${normalized.status}`
-        );
-    }
+    if (clearMessage) {
 
+        clearMessage.onclick = function () {
 
-    /*
-     * Risk level
-     */
+            const input =
+                document.querySelector("#messageInput");
 
-    if (
-        normalized.riskLevel
-    ) {
-
-        indicators.push(
-            `Risk Level: ${normalized.riskLevel}`
-        );
-    }
-
-
-    /*
-     * Confidence
-     */
-
-    if (
-        normalized.confidence !== null
-    ) {
-
-        indicators.push(
-            `Detection Confidence: ${formatConfidence(normalized.confidence)}`
-        );
-    }
-
-
-    /*
-     * Explanation
-     */
-
-    if (
-        normalized.message &&
-        normalized.message !== normalized.status
-    ) {
-
-        indicators.push(
-            normalized.message
-        );
-    }
-
-
-    /*
-     * Detected indicators
-     */
-
-    normalized.indicators.forEach(
-        item => {
-
-            if (
-                !item.startsWith("Recommendation:") &&
-                !item.startsWith("Risk Level:") &&
-                !item.startsWith("Status:")
-            ) {
-
-                indicators.push(
-                    item
+            if (input) {
+                input.value = "";
+                input.dispatchEvent(
+                    new Event("input", {
+                        bubbles: true
+                    })
                 );
             }
-        }
-    );
 
-
-    /*
-     * Recommendation
-     */
-
-    if (
-        normalized.recommendation
-    ) {
-
-        indicators.push(
-            `Recommended action: ${normalized.recommendation}`
-        );
+            if (typeof resetResult === "function") {
+                resetResult("message");
+            }
+        };
     }
 
 
-    /*
-     * Remove duplicates
-     */
+    /* --------------------------------------------------------
+       URL / WEBSITE MODE
+       -------------------------------------------------------- */
 
-    const unique =
-        [
-            ...new Set(
-                indicators
-                    .filter(Boolean)
-            )
-        ];
+    document.querySelectorAll(
+        "[data-url-mode]"
+    ).forEach((button) => {
+
+        button.onclick = function () {
+
+            const mode =
+                this.dataset.urlMode;
+
+            if (!mode) return;
+
+            if (typeof updateUrlModeUI === "function") {
+
+                /*
+                 * Existing code reads state.currentUrlMode.
+                 * Update it when available.
+                 */
+                if (
+                    typeof state !== "undefined"
+                ) {
+                    state.currentUrlMode = mode;
+                }
+
+                updateUrlModeUI();
+            }
+        };
+    });
 
 
-    /*
-     * Don't dump 20 pieces of
-     * engine metadata into the UI.
-     */
+    /* --------------------------------------------------------
+       URL ANALYSIS
+       -------------------------------------------------------- */
 
-    if (
-        unique.length === 0
-    ) {
+    const scanUrl =
+        document.querySelector("#scanUrlButton");
 
-        unique.push(
-            "No additional indicators were returned by the detection engine."
-        );
+    if (scanUrl) {
+
+        scanUrl.onclick = function () {
+
+            if (typeof analyzeUrl === "function") {
+                analyzeUrl();
+            }
+        };
     }
 
 
-    return unique.slice(
-        0,
-        10
+    /* --------------------------------------------------------
+       QR CHOOSE IMAGE
+       -------------------------------------------------------- */
+
+    const chooseQr =
+        document.querySelector("#chooseQrButton");
+
+    const qrInput =
+        document.querySelector("#qrInput");
+
+    if (chooseQr && qrInput) {
+
+        chooseQr.onclick = function () {
+            qrInput.click();
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       QR FILE INPUT
+       -------------------------------------------------------- */
+
+    if (qrInput) {
+
+        qrInput.onchange = function () {
+
+            const file =
+                this.files &&
+                this.files[0];
+
+            if (!file) return;
+
+            if (typeof setQrFile === "function") {
+                setQrFile(file);
+            }
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       QR SCAN
+       -------------------------------------------------------- */
+
+    const scanQr =
+        document.querySelector("#scanQrButton");
+
+    if (scanQr) {
+
+        scanQr.onclick = function () {
+
+            if (typeof analyzeQr === "function") {
+                analyzeQr();
+            }
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       QR REMOVE
+       -------------------------------------------------------- */
+
+    const removeQr =
+        document.querySelector("#removeQrButton");
+
+    if (removeQr) {
+
+        removeQr.onclick = function () {
+
+            if (typeof clearQrFile === "function") {
+                clearQrFile();
+            }
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       MOBILE MENU
+       -------------------------------------------------------- */
+
+    const mobileMenu =
+        document.querySelector("#mobileMenu");
+
+    if (mobileMenu) {
+
+        mobileMenu.onclick = function () {
+
+            const sidebar =
+                document.querySelector("#sidebar");
+
+            if (sidebar) {
+                sidebar.classList.toggle(
+                    "mobile-open"
+                );
+            }
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       RAW RESPONSE TOGGLES
+       -------------------------------------------------------- */
+
+    document.querySelectorAll(
+        "[data-raw-toggle]"
+    ).forEach((button) => {
+
+        button.onclick = function () {
+
+            const targetId =
+                this.dataset.rawToggle;
+
+            if (!targetId) return;
+
+            const target =
+                document.querySelector(
+                    targetId
+                );
+
+            if (!target) return;
+
+            target.classList.toggle("hidden");
+
+            this.classList.toggle("active");
+        };
+    });
+
+
+    /* --------------------------------------------------------
+       ORGANISATION SAVE
+       -------------------------------------------------------- */
+
+    const saveOrganisation =
+        document.querySelector(
+            "#saveOrganisationButton"
+        );
+
+    if (saveOrganisation) {
+
+        saveOrganisation.onclick = function () {
+
+            const input =
+                document.querySelector(
+                    "#organisationInput"
+                );
+
+            if (!input) return;
+
+            const value =
+                input.value.trim();
+
+            if (!value) {
+
+                if (
+                    typeof showToast === "function"
+                ) {
+                    showToast(
+                        "Organisation name required",
+                        "Enter an organisation name first.",
+                        "error"
+                    );
+                }
+
+                return;
+            }
+
+            if (
+                typeof state !== "undefined"
+            ) {
+                state.organisation = value;
+            }
+
+            localStorage.setItem(
+                "cyberguard_organisation",
+                value
+            );
+
+            if (
+                typeof updateOrganisationUI ===
+                "function"
+            ) {
+                updateOrganisationUI();
+            }
+
+            if (
+                typeof showToast === "function"
+            ) {
+                showToast(
+                    "Organisation updated",
+                    "Your organisation name has been updated.",
+                    "success"
+                );
+            }
+        };
+    }
+
+
+    /* --------------------------------------------------------
+       NEW ANALYSIS
+       -------------------------------------------------------- */
+
+    document.querySelectorAll(
+        "#newAnalysisButton, [data-new-analysis]"
+    ).forEach((button) => {
+
+        button.onclick = function () {
+
+            if (typeof navigateTo === "function") {
+                navigateTo("phishing");
+            }
+
+            if (typeof activateAnalysis === "function") {
+                activateAnalysis("message");
+            }
+
+            const input =
+                document.querySelector(
+                    "#messageInput"
+                );
+
+            if (input) {
+                input.focus();
+            }
+        };
+    });
+
+
+    /* --------------------------------------------------------
+       CLEAR HISTORY
+       -------------------------------------------------------- */
+
+    const clearHistory =
+        document.querySelector(
+            "#clearHistoryButton"
+        );
+
+    if (clearHistory) {
+
+        clearHistory.onclick = function () {
+
+            if (
+                typeof state !== "undefined"
+            ) {
+                state.history = [];
+            }
+
+            localStorage.removeItem(
+                "cyberguard_analysis_history"
+            );
+
+            if (
+                typeof renderHistory ===
+                "function"
+            ) {
+                renderHistory();
+            }
+
+            if (
+                typeof showToast ===
+                "function"
+            ) {
+                showToast(
+                    "History cleared",
+                    "Analysis history has been removed.",
+                    "success"
+                );
+            }
+        };
+    }
+
+
+    console.log(
+        "[CyberGuard] UI controls successfully bound."
     );
-}
+
+});
