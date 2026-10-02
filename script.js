@@ -22,7 +22,7 @@ DO NOT put a trailing slash.
 */
 
 const API_BASE_URL =
-    "YOUR_FASTAPI_BACKEND_URL";
+    "https://saswatpatra-cyberguard-phishing.hf.space";
 
 
 /* =========================================================
