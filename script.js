@@ -1,485 +1,3461 @@
 /* ============================================================
-   CYBERGUARD - UI EVENT RECOVERY
-   Keeps existing backend/engine logic untouched.
+   CYBERGUARD
+   Organisation Security Platform
+
+   Frontend:
+   - Vanilla JavaScript
+   - Hugging Face Gradio Client
+   - No backend token exposed in browser
+
+   Connected Space:
+   saswatpatra/cyberguard_phishing
+
+   Current API endpoints:
+   /analyze_message
+   /analyze_website
+   /scan_qr
    ============================================================ */
 
-document.addEventListener("DOMContentLoaded", () => {
 
-    console.log("[CyberGuard] UI event recovery initialized.");
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
 
-    /* --------------------------------------------------------
-       SIDEBAR NAVIGATION
-       -------------------------------------------------------- */
+const CONFIG = {
 
-    document.querySelectorAll(".nav-item").forEach((button) => {
+    HF_SPACE:
+        "saswatpatra/cyberguard_phishing",
 
-        button.onclick = function () {
+    ENDPOINTS: {
 
-            const view = this.dataset.view;
+        MESSAGE:
+            "/analyze_message",
 
-            if (!view) return;
+        WEBSITE:
+            "/analyze_website",
 
-            if (typeof navigateTo === "function") {
-                navigateTo(view);
-            }
-        };
-    });
+        QR:
+            "/scan_qr"
+    },
 
+    MAX_MESSAGE_LENGTH:
+        15000,
 
-    /* --------------------------------------------------------
-       BUTTONS THAT OPEN A VIEW
-       -------------------------------------------------------- */
+    MAX_QR_SIZE:
+        10 * 1024 * 1024,
 
-    document.querySelectorAll("[data-view-target]").forEach((button) => {
+    HISTORY_KEY:
+        "cyberguard_analysis_history",
 
-        button.onclick = function () {
-
-            const target = this.dataset.viewTarget;
-
-            if (!target) return;
-
-            if (typeof navigateTo === "function") {
-                navigateTo(target);
-            }
-        };
-    });
+    ORGANISATION_KEY:
+        "cyberguard_organisation"
+};
 
 
-    /* --------------------------------------------------------
-       PHISHING ANALYSIS TABS
-       -------------------------------------------------------- */
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
 
-    document.querySelectorAll(".analysis-tab").forEach((button) => {
+const state = {
 
-        button.onclick = function () {
+    gradioClient: null,
 
-            const analysis =
-                this.dataset.analysis;
+    gradioHandleFile: null,
 
-            if (!analysis) return;
+    clientLoading: false,
 
-            if (typeof activateAnalysis === "function") {
-                activateAnalysis(analysis);
-            }
-        };
-    });
+    currentView:
+        "overview",
 
+    currentAnalysis:
+        "message",
 
-    /* --------------------------------------------------------
-       QUICK ACTIONS
-       -------------------------------------------------------- */
+    currentUrlMode:
+        "url",
 
-    document.querySelectorAll(".quick-action").forEach((button) => {
+    selectedQrFile:
+        null,
 
-        button.onclick = function () {
+    history:
+        [],
 
-            const analysis =
-                this.dataset.analysis || "message";
-
-            if (typeof navigateTo === "function") {
-                navigateTo("phishing");
-            }
-
-            if (typeof activateAnalysis === "function") {
-                activateAnalysis(analysis);
-            }
-        };
-    });
+    organisation:
+        "Your Organisation"
+};
 
 
-    /* --------------------------------------------------------
-       OPEN PHISHING SCANNER
-       -------------------------------------------------------- */
+/* ============================================================
+   DOM HELPERS
+   ============================================================ */
 
-    const openPhishing =
-        document.querySelector("#openPhishingButton");
+function $(selector) {
 
-    if (openPhishing) {
+    return document.querySelector(selector);
+}
 
-        openPhishing.onclick = function () {
 
-            if (typeof navigateTo === "function") {
-                navigateTo("phishing");
-            }
+function $$(selector) {
 
-            if (typeof activateAnalysis === "function") {
-                activateAnalysis("message");
-            }
-        };
+    return document.querySelectorAll(selector);
+}
+
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeCyberGuard
+);
+
+
+async function initializeCyberGuard() {
+
+    loadOrganisation();
+
+    loadHistory();
+
+    initializeNavigation();
+
+    initializeAnalysisTabs();
+
+    initializeMessageInput();
+
+    initializeUrlControls();
+
+    initializeQrControls();
+
+    initializeQuickActions();
+
+    initializeRawToggles();
+
+    initializeOrganisationSettings();
+
+    initializeGlobalControls();
+
+    updateOrganisationUI();
+
+    await initializeGradioClient();
+}
+
+
+/* ============================================================
+   GRADIO CLIENT
+   ============================================================ */
+
+async function initializeGradioClient() {
+
+    if (state.gradioClient) {
+        return state.gradioClient;
     }
 
-
-    /* --------------------------------------------------------
-       MESSAGE SCAN
-       -------------------------------------------------------- */
-
-    const scanMessage =
-        document.querySelector("#scanMessageButton");
-
-    if (scanMessage) {
-
-        scanMessage.onclick = function () {
-
-            if (typeof analyzeMessage === "function") {
-                analyzeMessage();
-            }
-        };
+    if (state.clientLoading) {
+        return null;
     }
 
+    state.clientLoading = true;
 
-    /* --------------------------------------------------------
-       CLEAR MESSAGE
-       -------------------------------------------------------- */
+    try {
 
-    const clearMessage =
-        document.querySelector("#clearMessageButton");
+        /*
+         * The @gradio/client package is loaded in index.html.
+         * We dynamically import the same CDN package here so
+         * script.js remains a normal JavaScript file.
+         */
 
-    if (clearMessage) {
+        const gradioModule = await import(
+            "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"
+        );
 
-        clearMessage.onclick = function () {
+        const Client =
+            gradioModule.Client;
 
-            const input =
-                document.querySelector("#messageInput");
+        const handleFile =
+            gradioModule.handle_file;
 
-            if (input) {
-                input.value = "";
-                input.dispatchEvent(
-                    new Event("input", {
-                        bubbles: true
-                    })
-                );
-            }
+        if (!Client) {
 
-            if (typeof resetResult === "function") {
-                resetResult("message");
-            }
-        };
+            throw new Error(
+                "Gradio Client could not be loaded."
+            );
+        }
+
+        state.gradioHandleFile =
+            handleFile;
+
+        state.gradioClient =
+            await Client.connect(
+                CONFIG.HF_SPACE
+            );
+
+        console.log(
+            "[CyberGuard] Connected to Hugging Face Space:",
+            CONFIG.HF_SPACE
+        );
+
+        showToast(
+            "Engine connected",
+            "CyberGuard detection engine is ready.",
+            "success"
+        );
+
+        return state.gradioClient;
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] Gradio connection failed:",
+            error
+        );
+
+        showToast(
+            "Engine connection issue",
+            "The interface loaded, but the Hugging Face engine could not be connected.",
+            "error"
+        );
+
+        return null;
+
+    } finally {
+
+        state.clientLoading =
+            false;
     }
+}
 
 
-    /* --------------------------------------------------------
-       URL / WEBSITE MODE
-       -------------------------------------------------------- */
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
 
-    document.querySelectorAll(
-        "[data-url-mode]"
-    ).forEach((button) => {
+function initializeNavigation() {
 
-        button.onclick = function () {
+    $$(".nav-item").forEach(
+        button => {
 
-            const mode =
-                this.dataset.urlMode;
+            button.addEventListener(
+                "click",
+                () => {
 
-            if (!mode) return;
+                    const view =
+                        button.dataset.view;
 
-            if (typeof updateUrlModeUI === "function") {
+                    if (!view) {
+                        return;
+                    }
 
-                /*
-                 * Existing code reads state.currentUrlMode.
-                 * Update it when available.
-                 */
-                if (
-                    typeof state !== "undefined"
-                ) {
-                    state.currentUrlMode = mode;
+                    navigateTo(view);
                 }
+            );
+        }
+    );
 
-                updateUrlModeUI();
-            }
-        };
+
+    $$("[data-view-target]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    navigateTo(
+                        button.dataset.viewTarget
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+function navigateTo(viewName) {
+
+    const view =
+        $(`#view-${viewName}`);
+
+    if (!view) {
+        return;
+    }
+
+    $$(".view").forEach(
+        viewElement => {
+            viewElement.classList.remove(
+                "active"
+            );
+        }
+    );
+
+    view.classList.add("active");
+
+
+    $$(".nav-item").forEach(
+        item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.view === viewName
+            );
+        }
+    );
+
+
+    state.currentView =
+        viewName;
+
+
+    const names = {
+
+        overview:
+            "Security Overview",
+
+        phishing:
+            "Phishing Detection",
+
+        takeover:
+            "Account Takeover",
+
+        impersonation:
+            "Digital Impersonation",
+
+        activity:
+            "Analysis History",
+
+        organisation:
+            "Organisation"
+    };
+
+
+    const breadcrumb =
+        $("#breadcrumbCurrent");
+
+    if (breadcrumb) {
+
+        breadcrumb.textContent =
+            names[viewName] ||
+            "CyberGuard";
+    }
+
+
+    closeMobileSidebar();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
     });
+}
 
 
-    /* --------------------------------------------------------
-       URL ANALYSIS
-       -------------------------------------------------------- */
+/* ============================================================
+   GLOBAL UI API
+   ============================================================ */
 
-    const scanUrl =
-        document.querySelector("#scanUrlButton");
-
-    if (scanUrl) {
-
-        scanUrl.onclick = function () {
-
-            if (typeof analyzeUrl === "function") {
-                analyzeUrl();
-            }
-        };
-    }
+window.navigateTo = navigateTo;
 
 
-    /* --------------------------------------------------------
-       QR CHOOSE IMAGE
-       -------------------------------------------------------- */
+/* ============================================================
+   MOBILE NAVIGATION
+   ============================================================ */
 
-    const chooseQr =
-        document.querySelector("#chooseQrButton");
-
-    const qrInput =
-        document.querySelector("#qrInput");
-
-    if (chooseQr && qrInput) {
-
-        chooseQr.onclick = function () {
-            qrInput.click();
-        };
-    }
-
-
-    /* --------------------------------------------------------
-       QR FILE INPUT
-       -------------------------------------------------------- */
-
-    if (qrInput) {
-
-        qrInput.onchange = function () {
-
-            const file =
-                this.files &&
-                this.files[0];
-
-            if (!file) return;
-
-            if (typeof setQrFile === "function") {
-                setQrFile(file);
-            }
-        };
-    }
-
-
-    /* --------------------------------------------------------
-       QR SCAN
-       -------------------------------------------------------- */
-
-    const scanQr =
-        document.querySelector("#scanQrButton");
-
-    if (scanQr) {
-
-        scanQr.onclick = function () {
-
-            if (typeof analyzeQr === "function") {
-                analyzeQr();
-            }
-        };
-    }
-
-
-    /* --------------------------------------------------------
-       QR REMOVE
-       -------------------------------------------------------- */
-
-    const removeQr =
-        document.querySelector("#removeQrButton");
-
-    if (removeQr) {
-
-        removeQr.onclick = function () {
-
-            if (typeof clearQrFile === "function") {
-                clearQrFile();
-            }
-        };
-    }
-
-
-    /* --------------------------------------------------------
-       MOBILE MENU
-       -------------------------------------------------------- */
+function initializeGlobalControls() {
 
     const mobileMenu =
-        document.querySelector("#mobileMenu");
+        $("#mobileMenu");
 
     if (mobileMenu) {
 
-        mobileMenu.onclick = function () {
+        mobileMenu.addEventListener(
+            "click",
+            () => {
 
-            const sidebar =
-                document.querySelector("#sidebar");
+                const sidebar =
+                    $("#sidebar");
 
-            if (sidebar) {
                 sidebar.classList.toggle(
                     "mobile-open"
                 );
             }
+        );
+    }
+}
+
+
+function closeMobileSidebar() {
+
+    const sidebar =
+        $("#sidebar");
+
+    if (sidebar) {
+
+        sidebar.classList.remove(
+            "mobile-open"
+        );
+    }
+}
+
+
+/* ============================================================
+   ANALYSIS TABS
+   ============================================================ */
+
+function initializeAnalysisTabs() {
+
+    $$(".analysis-tab").forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    activateAnalysis(
+                        tab.dataset.analysis
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+function activateAnalysis(
+    analysisType
+) {
+
+    const panel =
+        $(`#analysis-${analysisType}`);
+
+    if (!panel) {
+        return;
+    }
+
+    state.currentAnalysis =
+        analysisType;
+
+
+    $$(".analysis-tab").forEach(
+        tab => {
+
+            tab.classList.toggle(
+                "active",
+                tab.dataset.analysis ===
+                analysisType
+            );
+        }
+    );
+
+
+    $$(".analysis-panel").forEach(
+        analysisPanel => {
+
+            analysisPanel.classList.remove(
+                "active"
+            );
+        }
+    );
+
+
+    panel.classList.add("active");
+}
+
+
+window.activateAnalysis = activateAnalysis;
+
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+
+function initializeQuickActions() {
+
+    $$(".quick-action").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    navigateTo("phishing");
+
+                    activateAnalysis(
+                        button.dataset.analysis
+                    );
+                }
+            );
+        }
+    );
+
+
+    const openPhishingButton =
+        $("#openPhishingButton");
+
+    if (openPhishingButton) {
+
+        openPhishingButton.addEventListener(
+            "click",
+            () => {
+
+                navigateTo("phishing");
+
+                activateAnalysis("message");
+            }
+        );
+    }
+}
+
+
+/* ============================================================
+   MESSAGE INPUT
+   ============================================================ */
+
+function initializeMessageInput() {
+
+    const textarea =
+        $("#messageInput");
+
+    const counter =
+        $("#messageCount");
+
+    if (!textarea) {
+        return;
+    }
+
+    textarea.addEventListener(
+        "input",
+        () => {
+
+            const length =
+                textarea.value.length;
+
+            counter.textContent =
+                length.toLocaleString();
+
+            if (
+                length >
+                CONFIG.MAX_MESSAGE_LENGTH
+            ) {
+
+                textarea.value =
+                    textarea.value.slice(
+                        0,
+                        CONFIG.MAX_MESSAGE_LENGTH
+                    );
+
+                counter.textContent =
+                    CONFIG.MAX_MESSAGE_LENGTH
+                        .toLocaleString();
+            }
+        }
+    );
+
+
+    const clearButton =
+        $("#clearMessage");
+
+    if (clearButton) {
+
+        clearButton.addEventListener(
+            "click",
+            () => {
+
+                textarea.value = "";
+
+                counter.textContent =
+                    "0";
+
+                resetResult("message");
+            }
+        );
+    }
+
+
+    const scanButton =
+        $("#scanMessageButton");
+
+    if (scanButton) {
+
+        scanButton.addEventListener(
+            "click",
+            analyzeMessage
+        );
+    }
+}
+
+
+/* ============================================================
+   MESSAGE ANALYSIS
+   ============================================================ */
+
+async function analyzeMessage() {
+
+    const messageInput =
+        $("#messageInput");
+
+    const messageType =
+        $("#messageType");
+
+    const message =
+        messageInput.value.trim();
+
+    if (!message) {
+
+        showToast(
+            "Message required",
+            "Paste a message before starting the analysis.",
+            "error"
+        );
+
+        messageInput.focus();
+
+        return;
+    }
+
+
+    if (
+        message.length >
+        CONFIG.MAX_MESSAGE_LENGTH
+    ) {
+
+        showToast(
+            "Message too long",
+            "Please keep the message within the supported input limit.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "message",
+        "PROCESSING"
+    );
+
+    showLoading(
+        "Analysing message",
+        "CyberGuard is checking the message for phishing indicators."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
+        }
+
+
+        /*
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * message: string
+         */
+
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.MESSAGE,
+                {
+                    message: message
+                }
+            );
+
+
+        console.log(
+            "[CyberGuard] Message result:",
+            result
+        );
+
+
+        renderAnalysisResult(
+            "message",
+            result.data,
+            {
+                inputType:
+                    messageType.value,
+
+                originalInput:
+                    message
+            }
+        );
+
+
+        addHistoryEntry({
+            type: "Message",
+            input:
+                `${messageType.value} analysis`,
+            result:
+                summarizeResult(result.data)
+        });
+
+
+        showToast(
+            "Analysis complete",
+            "The message has been processed by the CyberGuard engine.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] Message analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "message",
+            error
+        );
+
+        showToast(
+            "Analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
+    }
+}
+
+
+window.analyzeMessage = analyzeMessage;
+
+
+/* ============================================================
+   URL CONTROLS
+   ============================================================ */
+
+function initializeUrlControls() {
+
+    $$("[data-url-mode]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    state.currentUrlMode =
+                        button.dataset.urlMode;
+
+                    $$("[data-url-mode]").forEach(
+                        modeButton => {
+
+                            modeButton.classList.toggle(
+                                "active",
+                                modeButton.dataset.urlMode ===
+                                state.currentUrlMode
+                            );
+                        }
+                    );
+
+                    updateUrlModeUI();
+                }
+            );
+        }
+    );
+
+
+    const urlButton =
+        $("#scanUrlButton");
+
+    if (urlButton) {
+
+        urlButton.addEventListener(
+            "click",
+            analyzeUrl
+        );
+    }
+
+
+    const urlInput =
+        $("#urlInput");
+
+    if (urlInput) {
+
+        urlInput.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    event.preventDefault();
+
+                    analyzeUrl();
+                }
+            }
+        );
+    }
+}
+
+
+function updateUrlModeUI() {
+
+    const urlInput =
+        $("#urlInput");
+
+    if (!urlInput) {
+        return;
+    }
+
+
+    if (
+        state.currentUrlMode ===
+        "website"
+    ) {
+
+        urlInput.placeholder =
+            "https://example.com/login";
+
+    } else {
+
+        urlInput.placeholder =
+            "https://suspicious-domain.example/login";
+    }
+}
+
+
+/* ============================================================
+   URL ANALYSIS
+   ============================================================ */
+
+async function analyzeUrl() {
+
+    const urlInput =
+        $("#urlInput");
+
+    const url =
+        urlInput.value.trim();
+
+
+    if (!url) {
+
+        showToast(
+            "URL required",
+            "Enter a website or URL before starting the analysis.",
+            "error"
+        );
+
+        urlInput.focus();
+
+        return;
+    }
+
+
+    if (!isValidUrl(url)) {
+
+        showToast(
+            "Invalid URL",
+            "Please enter a complete URL such as https://example.com.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "url",
+        "PROCESSING"
+    );
+
+    showLoading(
+        state.currentUrlMode === "website"
+            ? "Analysing website"
+            : "Analysing URL",
+        "CyberGuard is checking the destination for suspicious indicators."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
+        }
+
+
+        /*
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * url: string
+         */
+
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.WEBSITE,
+                {
+                    url: url
+                }
+            );
+
+
+        console.log(
+            "[CyberGuard] URL result:",
+            result
+        );
+
+
+        renderAnalysisResult(
+            "url",
+            result.data,
+            {
+                originalInput:
+                    url,
+
+                inputType:
+                    state.currentUrlMode === "website"
+                        ? "Fraudulent Website"
+                        : "Malicious / Deceptive URL"
+            }
+        );
+
+
+        addHistoryEntry({
+            type:
+                state.currentUrlMode === "website"
+                    ? "Website"
+                    : "URL",
+
+            input:
+                url,
+
+            result:
+                summarizeResult(result.data)
+        });
+
+
+        showToast(
+            "Analysis complete",
+            "The destination has been processed by the CyberGuard engine.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] URL analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "url",
+            error
+        );
+
+        showToast(
+            "Analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
+    }
+}
+
+
+window.analyzeUrl = analyzeUrl;
+
+
+/* ============================================================
+   URL VALIDATION
+   ============================================================ */
+
+function isValidUrl(value) {
+
+    try {
+
+        const url =
+            new URL(value);
+
+        return (
+            url.protocol === "http:" ||
+            url.protocol === "https:"
+        );
+
+    } catch {
+
+        return false;
+    }
+}
+
+
+/* ============================================================
+   QR CONTROLS
+   ============================================================ */
+
+function initializeQrControls() {
+
+    const fileInput =
+        $("#qrInput");
+
+    const chooseButton =
+        $("#chooseQrButton");
+
+    const dropZone =
+        $("#qrDropZone");
+
+    const removeButton =
+        $("#removeQrFile");
+
+    const scanButton =
+        $("#scanQrButton");
+
+
+    if (
+        !fileInput ||
+        !dropZone
+    ) {
+
+        return;
+    }
+
+
+    chooseButton.addEventListener(
+        "click",
+        () => {
+
+            fileInput.click();
+        }
+    );
+
+
+    fileInput.addEventListener(
+        "change",
+        () => {
+
+            if (
+                fileInput.files &&
+                fileInput.files[0]
+            ) {
+
+                setQrFile(
+                    fileInput.files[0]
+                );
+            }
+        }
+    );
+
+
+    [
+        "dragenter",
+        "dragover"
+    ].forEach(
+        eventName => {
+
+            dropZone.addEventListener(
+                eventName,
+                event => {
+
+                    event.preventDefault();
+
+                    dropZone.classList.add(
+                        "dragover"
+                    );
+                }
+            );
+        }
+    );
+
+
+    [
+        "dragleave",
+        "drop"
+    ].forEach(
+        eventName => {
+
+            dropZone.addEventListener(
+                eventName,
+                event => {
+
+                    event.preventDefault();
+
+                    dropZone.classList.remove(
+                        "dragover"
+                    );
+                }
+            );
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "drop",
+        event => {
+
+            const files =
+                event.dataTransfer.files;
+
+            if (
+                files &&
+                files[0]
+            ) {
+
+                setQrFile(
+                    files[0]
+                );
+            }
+        }
+    );
+
+
+    removeButton.addEventListener(
+        "click",
+        clearQrFile
+    );
+
+
+    scanButton.addEventListener(
+        "click",
+        analyzeQr
+    );
+}
+
+
+/* ============================================================
+   SET QR FILE
+   ============================================================ */
+
+function setQrFile(file) {
+
+    if (!file) {
+        return;
+    }
+
+
+    if (
+        !file.type.startsWith("image/")
+    ) {
+
+        showToast(
+            "Invalid file",
+            "Please select a PNG, JPG or WEBP image.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (
+        file.size >
+        CONFIG.MAX_QR_SIZE
+    ) {
+
+        showToast(
+            "File too large",
+            "Please choose an image smaller than 10 MB.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    state.selectedQrFile =
+        file;
+
+
+    $("#qrFileName").textContent =
+        file.name;
+
+    $("#qrFileSize").textContent =
+        formatFileSize(file.size);
+
+
+    $("#selectedQrFile")
+        .classList.remove(
+            "hidden"
+        );
+
+
+    $("#scanQrButton")
+        .disabled =
+        false;
+}
+
+
+/* ============================================================
+   CLEAR QR
+   ============================================================ */
+
+function clearQrFile() {
+
+    state.selectedQrFile =
+        null;
+
+    const input =
+        $("#qrInput");
+
+    if (input) {
+        input.value = "";
+    }
+
+    $("#selectedQrFile")
+        .classList.add(
+            "hidden"
+        );
+
+    $("#scanQrButton")
+        .disabled =
+        true;
+
+    resetResult("qr");
+}
+
+
+/* ============================================================
+   QR ANALYSIS
+   ============================================================ */
+
+async function analyzeQr() {
+
+    const file =
+        state.selectedQrFile;
+
+
+    if (!file) {
+
+        showToast(
+            "QR image required",
+            "Upload a QR code image before starting the analysis.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "qr",
+        "PROCESSING"
+    );
+
+    showLoading(
+        "Scanning QR code",
+        "CyberGuard is processing the uploaded QR image."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
+        }
+
+
+        if (
+            typeof state.gradioHandleFile !==
+            "function"
+        ) {
+
+            throw new Error(
+                "The Gradio file handler could not be loaded."
+            );
+        }
+
+
+        /*
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * image: File / Blob / Buffer
+         *
+         * handle_file() converts the browser File
+         * into the appropriate Gradio file input.
+         */
+
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.QR,
+                {
+                    image:
+                        state.gradioHandleFile(
+                            file
+                        )
+                }
+            );
+
+
+        console.log(
+            "[CyberGuard] QR result:",
+            result
+        );
+
+
+        renderAnalysisResult(
+            "qr",
+            result.data,
+            {
+                inputType:
+                    "QR Code",
+
+                originalInput:
+                    file.name
+            }
+        );
+
+
+        addHistoryEntry({
+            type:
+                "QR Code",
+
+            input:
+                file.name,
+
+            result:
+                summarizeResult(result.data)
+        });
+
+
+        showToast(
+            "QR analysis complete",
+            "The QR image has been processed by the CyberGuard engine.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] QR analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "qr",
+            error
+        );
+
+        showToast(
+            "QR analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
+    }
+}
+
+
+window.analyzeQr = analyzeQr;
+
+
+/* ============================================================
+   ENSURE GRADIO CLIENT
+   ============================================================ */
+
+async function ensureGradioClient() {
+
+    if (
+        state.gradioClient
+    ) {
+
+        return state.gradioClient;
+    }
+
+
+    return await initializeGradioClient();
+}
+
+
+/* ============================================================
+   RESULT STATE
+   ============================================================ */
+
+function setResultState(
+    type,
+    status
+) {
+
+    const stateElement =
+        $(`#${type}ResultState`);
+
+    if (!stateElement) {
+        return;
+    }
+
+
+    stateElement.className =
+        "result-state";
+
+
+    if (
+        status ===
+        "PROCESSING"
+    ) {
+
+        stateElement.classList.add(
+            "processing"
+        );
+    }
+
+
+    if (
+        status ===
+        "COMPLETE"
+    ) {
+
+        stateElement.classList.add(
+            "success"
+        );
+    }
+
+
+    if (
+        status ===
+        "ERROR"
+    ) {
+
+        stateElement.classList.add(
+            "danger"
+        );
+    }
+
+
+    stateElement.textContent =
+        status;
+}
+
+
+/* ============================================================
+   RENDER ANALYSIS RESULT
+   ============================================================ */
+
+function renderAnalysisResult(
+    type,
+    rawData,
+    metadata = {}
+) {
+
+    const normalized =
+        normalizeResult(
+            rawData
+        );
+
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+
+    if (empty) {
+        empty.classList.add(
+            "hidden"
+        );
+    }
+
+    if (content) {
+        content.classList.remove(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "COMPLETE"
+    );
+
+
+    const risk =
+        determineRisk(
+            normalized
+        );
+
+
+    const indicator =
+        $(`#${type}RiskIndicator`);
+
+    const label =
+        $(`#${type}RiskLabel`);
+
+
+    if (indicator) {
+
+        indicator.className =
+            "risk-indicator";
+
+        indicator.classList.add(
+            risk.className
+        );
+    }
+
+
+    if (label) {
+
+        label.textContent =
+            risk.label;
+    }
+
+
+    const title =
+        $(`#${type}ThreatTitle`);
+
+    if (title) {
+
+        title.textContent =
+            risk.title;
+    }
+
+
+    const description =
+        $(`#${type}ThreatDescription`);
+
+    if (description) {
+
+        description.textContent =
+            risk.description;
+    }
+
+
+    const confidence =
+        $(`#${type}Confidence`);
+
+    if (
+        confidence &&
+        normalized.confidence !== null
+    ) {
+
+        confidence.textContent =
+            formatConfidence(
+                normalized.confidence
+            );
+    }
+
+
+    const inputType =
+        $(`#${type}InputType`);
+
+    if (
+        inputType &&
+        metadata.inputType
+    ) {
+
+        inputType.textContent =
+            metadata.inputType;
+    }
+
+
+    const indicators =
+        $(`#${type}Indicators`);
+
+    if (indicators) {
+
+        indicators.innerHTML = "";
+
+        const items =
+            buildIndicators(
+                normalized
+            );
+
+        items.forEach(
+            item => {
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+                element.className =
+                    "indicator";
+
+                element.textContent =
+                    item;
+
+                indicators.appendChild(
+                    element
+                );
+            }
+        );
+    }
+
+
+    const analysedUrl =
+        $("#analysedUrl");
+
+    if (
+        type === "url" &&
+        analysedUrl &&
+        metadata.originalInput
+    ) {
+
+        analysedUrl.textContent =
+            metadata.originalInput;
+    }
+
+
+    const raw =
+        $(`#${type}Raw`);
+
+    if (raw) {
+
+        raw.textContent =
+            safePrettyPrint(
+                rawData
+            );
+    }
+
+
+    /*
+     * The engine may return a different structure depending
+     * on how cyberphishing_engine.py formats its output.
+     * We therefore preserve the complete raw response while
+     * extracting common fields where possible.
+     */
+
+    console.log(
+        `[CyberGuard] Normalized ${type} result:`,
+        normalized
+    );
+}
+
+
+/* ============================================================
+   NORMALIZE RESULT
+   ============================================================ */
+
+function normalizeResult(data) {
+
+    let value =
+        unwrapGradioData(
+            data
+        );
+
+
+    if (
+        typeof value ===
+        "string"
+    ) {
+
+        const parsed =
+            tryParseJson(
+                value
+            );
+
+        if (parsed !== null) {
+
+            value =
+                parsed;
+        }
+    }
+
+
+    const result = {
+
+        raw:
+            value,
+
+        label:
+            null,
+
+        confidence:
+            null,
+
+        indicators:
+            [],
+
+        message:
+            null,
+
+        threat:
+            null
+    };
+
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return result;
+    }
+
+
+    if (
+        typeof value ===
+        "string"
+    ) {
+
+        result.message =
+            value;
+
+        result.label =
+            value;
+
+        return result;
+    }
+
+
+    if (
+        Array.isArray(value)
+    ) {
+
+        result.indicators =
+            flattenStrings(
+                value
+            );
+
+        const firstObject =
+            value.find(
+                item =>
+                    item &&
+                    typeof item ===
+                    "object"
+            );
+
+        if (firstObject) {
+
+            mergeObjectFields(
+                result,
+                firstObject
+            );
+        }
+
+        return result;
+    }
+
+
+    if (
+        typeof value ===
+        "object"
+    ) {
+
+        mergeObjectFields(
+            result,
+            value
+        );
+
+        return result;
+    }
+
+
+    result.message =
+        String(value);
+
+    return result;
+}
+
+
+/* ============================================================
+   MERGE OBJECT FIELDS
+   ============================================================ */
+
+function mergeObjectFields(
+    result,
+    object
+) {
+
+    const labelKeys = [
+
+        "label",
+        "prediction",
+        "predicted_label",
+        "class",
+        "category",
+        "result",
+        "status",
+        "risk",
+        "threat"
+    ];
+
+
+    for (
+        const key of labelKeys
+    ) {
+
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+
+            if (
+                typeof object[key] !==
+                "object"
+            ) {
+
+                result.label =
+                    String(
+                        object[key]
+                    );
+
+                break;
+            }
+        }
+    }
+
+
+    const confidenceKeys = [
+
+        "confidence",
+        "score",
+        "probability",
+        "risk_score",
+        "phishing_probability"
+    ];
+
+
+    for (
+        const key of confidenceKeys
+    ) {
+
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+
+            const number =
+                Number(
+                    object[key]
+                );
+
+            if (
+                Number.isFinite(number)
+            ) {
+
+                result.confidence =
+                    number;
+
+                break;
+            }
+        }
+    }
+
+
+    const indicatorKeys = [
+
+        "indicators",
+        "features",
+        "reasons",
+        "signals",
+        "findings",
+        "detections",
+        "recommendations"
+    ];
+
+
+    for (
+        const key of indicatorKeys
+    ) {
+
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+
+            result.indicators.push(
+                ...flattenStrings(
+                    object[key]
+                )
+            );
+        }
+    }
+
+
+    const messageKeys = [
+
+        "message",
+        "explanation",
+        "description",
+        "details",
+        "analysis"
+    ];
+
+
+    for (
+        const key of messageKeys
+    ) {
+
+        if (
+            typeof object[key] ===
+            "string"
+        ) {
+
+            result.message =
+                object[key];
+
+            break;
+        }
+    }
+
+
+    if (!result.threat) {
+
+        result.threat =
+            result.label;
+    }
+}
+
+
+/* ============================================================
+   UNWRAP GRADIO DATA
+   ============================================================ */
+
+function unwrapGradioData(data) {
+
+    let value =
+        data;
+
+
+    /*
+     * Some Gradio functions return:
+     *
+     * [value]
+     *
+     * while others can return objects.
+     */
+
+    if (
+        Array.isArray(value) &&
+        value.length === 1
+    ) {
+
+        value =
+            value[0];
+    }
+
+
+    return value;
+}
+
+
+/* ============================================================
+   TRY JSON
+   ============================================================ */
+
+function tryParseJson(value) {
+
+    if (
+        typeof value !==
+        "string"
+    ) {
+
+        return null;
+    }
+
+
+    try {
+
+        return JSON.parse(
+            value
+        );
+
+    } catch {
+
+        return null;
+    }
+}
+
+
+/* ============================================================
+   FLATTEN STRINGS
+   ============================================================ */
+
+function flattenStrings(
+    value
+) {
+
+    const output = [];
+
+
+    function walk(item) {
+
+        if (
+            item === null ||
+            item === undefined
+        ) {
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "string"
+        ) {
+
+            const cleaned =
+                item.trim();
+
+            if (cleaned) {
+
+                output.push(
+                    cleaned
+                );
+            }
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "number" ||
+            typeof item ===
+            "boolean"
+        ) {
+
+            output.push(
+                String(item)
+            );
+
+            return;
+        }
+
+
+        if (
+            Array.isArray(item)
+        ) {
+
+            item.forEach(
+                walk
+            );
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "object"
+        ) {
+
+            Object.entries(
+                item
+            ).forEach(
+                ([key, val]) => {
+
+                    if (
+                        typeof val ===
+                        "string" ||
+                        typeof val ===
+                        "number" ||
+                        typeof val ===
+                        "boolean"
+                    ) {
+
+                        output.push(
+                            `${formatKey(key)}: ${val}`
+                        );
+
+                    } else {
+
+                        walk(val);
+                    }
+                }
+            );
+        }
+    }
+
+
+    walk(value);
+
+
+    return [
+        ...new Set(output)
+    ];
+}
+
+
+/* ============================================================
+   FORMAT KEY
+   ============================================================ */
+
+function formatKey(key) {
+
+    return String(key)
+        .replace(
+            /[_-]+/g,
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            char =>
+                char.toUpperCase()
+        );
+}
+
+
+/* ============================================================
+   DETERMINE RISK
+   ============================================================ */
+
+function determineRisk(
+    normalized
+) {
+
+    const text =
+        [
+            normalized.label,
+            normalized.message,
+            normalized.threat,
+            ...normalized.indicators
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+
+    const confidence =
+        normalized.confidence;
+
+
+    /*
+     * Explicit phishing / malicious indicators
+     */
+
+    const dangerWords = [
+
+        "phishing",
+        "malicious",
+        "malware",
+        "dangerous",
+        "fraudulent",
+        "suspicious",
+        "scam",
+        "unsafe",
+        "high risk",
+        "critical",
+        "attack",
+        "threat",
+        "credential theft"
+    ];
+
+
+    const safeWords = [
+
+        "benign",
+        "safe",
+        "legitimate",
+        "ham",
+        "clean",
+        "not phishing",
+        "no threat"
+    ];
+
+
+    const danger =
+        dangerWords.some(
+            word =>
+                text.includes(word)
+        );
+
+
+    const safe =
+        safeWords.some(
+            word =>
+                text.includes(word)
+        );
+
+
+    if (
+        danger &&
+        !safe
+    ) {
+
+        return {
+
+            className:
+                "danger",
+
+            label:
+                "HIGH RISK",
+
+            title:
+                "Suspicious activity detected",
+
+            description:
+                "The detection engine identified indicators associated with a potentially unsafe input."
         };
     }
 
 
-    /* --------------------------------------------------------
-       RAW RESPONSE TOGGLES
-       -------------------------------------------------------- */
+    if (
+        safe &&
+        !danger
+    ) {
 
-    document.querySelectorAll(
-        "[data-raw-toggle]"
-    ).forEach((button) => {
+        return {
 
-        button.onclick = function () {
+            className:
+                "safe",
 
-            const targetId =
-                this.dataset.rawToggle;
+            label:
+                "LOW RISK",
 
-            if (!targetId) return;
+            title:
+                "No major threat indicated",
 
-            const target =
-                document.querySelector(
-                    targetId
+            description:
+                "The detection engine did not identify strong indicators of the targeted threat."
+        };
+    }
+
+
+    if (
+        confidence !== null
+    ) {
+
+        const normalizedConfidence =
+            normalizeConfidence(
+                confidence
+            );
+
+
+        if (
+            normalizedConfidence >=
+            0.75
+        ) {
+
+            return {
+
+                className:
+                    "danger",
+
+                label:
+                    "HIGH RISK",
+
+                title:
+                    "High-confidence detection",
+
+                description:
+                    "The engine returned a high-confidence threat classification."
+            };
+        }
+
+
+        if (
+            normalizedConfidence >=
+            0.45
+        ) {
+
+            return {
+
+                className:
+                    "warning",
+
+                label:
+                    "REVIEW",
+
+                title:
+                    "Further review recommended",
+
+                description:
+                    "The result contains signals that should be reviewed before treating the input as safe."
+            };
+        }
+
+
+        return {
+
+            className:
+                "safe",
+
+            label:
+                "LOW RISK",
+
+            title:
+                "Low-risk classification",
+
+            description:
+                "The engine returned a lower-risk classification for this input."
+        };
+    }
+
+
+    return {
+
+        className:
+            "warning",
+
+        label:
+            "REVIEW",
+
+        title:
+            "Analysis completed",
+
+        description:
+            "The engine returned a result. Review the detection output below before making a decision."
+    };
+}
+
+
+/* ============================================================
+   NORMALIZE CONFIDENCE
+   ============================================================ */
+
+function normalizeConfidence(
+    value
+) {
+
+    let number =
+        Number(value);
+
+
+    if (
+        !Number.isFinite(number)
+    ) {
+
+        return 0;
+    }
+
+
+    if (
+        number > 1 &&
+        number <= 100
+    ) {
+
+        number /=
+            100;
+    }
+
+
+    return Math.max(
+        0,
+        Math.min(
+            1,
+            number
+        )
+    );
+}
+
+
+/* ============================================================
+   FORMAT CONFIDENCE
+   ============================================================ */
+
+function formatConfidence(
+    value
+) {
+
+    return (
+        normalizeConfidence(
+            value
+        ) * 100
+    ).toFixed(1) + "%";
+}
+
+
+/* ============================================================
+   BUILD INDICATORS
+   ============================================================ */
+
+function buildIndicators(
+    normalized
+) {
+
+    const indicators =
+        [];
+
+
+    if (
+        normalized.label
+    ) {
+
+        indicators.push(
+            `Classification: ${normalized.label}`
+        );
+    }
+
+
+    if (
+        normalized.message
+    ) {
+
+        indicators.push(
+            normalized.message
+        );
+    }
+
+
+    normalized.indicators.forEach(
+        item => {
+
+            indicators.push(
+                item
+            );
+        }
+    );
+
+
+    if (
+        indicators.length === 0
+    ) {
+
+        indicators.push(
+            "The engine returned a result. Expand the raw response below for the complete output."
+        );
+    }
+
+
+    return [
+        ...new Set(
+            indicators
+        )
+    ].slice(
+        0,
+        12
+    );
+}
+
+
+/* ============================================================
+   RENDER ANALYSIS ERROR
+   ============================================================ */
+
+function renderAnalysisError(
+    type,
+    error
+) {
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+    if (empty) {
+
+        empty.classList.add(
+            "hidden"
+        );
+    }
+
+    if (content) {
+
+        content.classList.remove(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "ERROR"
+    );
+
+
+    const indicator =
+        $(`#${type}RiskIndicator`);
+
+    const label =
+        $(`#${type}RiskLabel`);
+
+    const title =
+        $(`#${type}ThreatTitle`);
+
+    const description =
+        $(`#${type}ThreatDescription`);
+
+
+    if (indicator) {
+
+        indicator.className =
+            "risk-indicator danger";
+    }
+
+
+    if (label) {
+
+        label.textContent =
+            "ERROR";
+    }
+
+
+    if (title) {
+
+        title.textContent =
+            "Analysis could not be completed";
+    }
+
+
+    if (description) {
+
+        description.textContent =
+            getErrorMessage(error);
+    }
+
+
+    const indicators =
+        $(`#${type}Indicators`);
+
+    if (indicators) {
+
+        indicators.innerHTML = "";
+
+        const element =
+            document.createElement(
+                "div"
+            );
+
+        element.className =
+            "indicator";
+
+        element.textContent =
+            "Check that the Hugging Face Space is running and that the endpoint is available.";
+
+        indicators.appendChild(
+            element
+        );
+    }
+
+
+    const raw =
+        $(`#${type}Raw`);
+
+    if (raw) {
+
+        raw.textContent =
+            error?.stack ||
+            String(error);
+    }
+}
+
+
+/* ============================================================
+   RESET RESULT
+   ============================================================ */
+
+function resetResult(
+    type
+) {
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+    if (empty) {
+
+        empty.classList.remove(
+            "hidden"
+        );
+    }
+
+    if (content) {
+
+        content.classList.add(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "WAITING"
+    );
+}
+
+
+/* ============================================================
+   RAW TOGGLES
+   ============================================================ */
+
+function initializeRawToggles() {
+
+    $$(".raw-toggle").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const target =
+                        $(
+                            `#${button.dataset.target}`
+                        );
+
+                    if (!target) {
+                        return;
+                    }
+
+                    target.classList.toggle(
+                        "hidden"
+                    );
+
+
+                    const plus =
+                        button.querySelector(
+                            "span"
+                        );
+
+                    if (plus) {
+
+                        plus.textContent =
+                            target.classList.contains(
+                                "hidden"
+                            )
+                                ? "+"
+                                : "−";
+                    }
+                }
+            );
+        }
+    );
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+function showLoading(
+    title,
+    description
+) {
+
+    const overlay =
+        $("#loadingOverlay");
+
+    $("#loadingTitle").textContent =
+        title;
+
+    $("#loadingDescription").textContent =
+        description;
+
+    overlay.classList.remove(
+        "hidden"
+    );
+}
+
+
+function hideLoading() {
+
+    $("#loadingOverlay")
+        .classList.add(
+            "hidden"
+        );
+}
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+let toastTimer =
+    null;
+
+
+function showToast(
+    title,
+    message,
+    type = "success"
+) {
+
+    const toast =
+        $("#toast");
+
+    const icon =
+        $("#toastIcon");
+
+
+    $("#toastTitle").textContent =
+        title;
+
+    $("#toastMessage").textContent =
+        message;
+
+
+    if (
+        type === "error"
+    ) {
+
+        icon.textContent =
+            "!";
+
+        icon.style.color =
+            "var(--red)";
+
+        icon.style.background =
+            "rgba(239, 68, 68, 0.08)";
+
+    } else {
+
+        icon.textContent =
+            "✓";
+
+        icon.style.color =
+            "var(--green)";
+
+        icon.style.background =
+            "rgba(34, 197, 94, 0.08)";
+    }
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
                 );
 
-            if (!target) return;
-
-            target.classList.toggle("hidden");
-
-            this.classList.toggle("active");
-        };
-    });
+            },
+            4500
+        );
+}
 
 
-    /* --------------------------------------------------------
-       ORGANISATION SAVE
-       -------------------------------------------------------- */
+$("#toastClose")
+    ?.addEventListener(
+        "click",
+        () => {
 
-    const saveOrganisation =
-        document.querySelector(
-            "#saveOrganisationButton"
+            $("#toast")
+                .classList.remove(
+                    "show"
+                );
+        }
+    );
+
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+
+function loadHistory() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                CONFIG.HISTORY_KEY
+            );
+
+        if (saved) {
+
+            state.history =
+                JSON.parse(
+                    saved
+                );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not load history:",
+            error
         );
 
-    if (saveOrganisation) {
+        state.history =
+            [];
+    }
 
-        saveOrganisation.onclick = function () {
 
-            const input =
-                document.querySelector(
-                    "#organisationInput"
-                );
+    renderHistory();
+}
 
-            if (!input) return;
 
-            const value =
-                input.value.trim();
+function saveHistory() {
 
-            if (!value) {
+    try {
 
-                if (
-                    typeof showToast === "function"
-                ) {
-                    showToast(
-                        "Organisation name required",
-                        "Enter an organisation name first.",
-                        "error"
-                    );
+        localStorage.setItem(
+            CONFIG.HISTORY_KEY,
+            JSON.stringify(
+                state.history
+            )
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not save history:",
+            error
+        );
+    }
+}
+
+
+function addHistoryEntry(
+    entry
+) {
+
+    const historyEntry = {
+
+        id:
+            Date.now(),
+
+        type:
+            entry.type ||
+            "Analysis",
+
+        input:
+            entry.input ||
+            "",
+
+        result:
+            entry.result ||
+            "",
+
+        timestamp:
+            new Date().toISOString()
+    };
+
+
+    state.history.unshift(
+        historyEntry
+    );
+
+
+    state.history =
+        state.history.slice(
+            0,
+            30
+        );
+
+
+    saveHistory();
+
+    renderHistory();
+}
+
+
+function renderHistory() {
+
+    const container =
+        $("#historyList");
+
+    if (!container) {
+        return;
+    }
+
+
+    if (
+        state.history.length === 0
+    ) {
+
+        container.innerHTML = `
+
+            <div class="history-empty">
+
+                <div>◷</div>
+
+                <h4>
+                    No analysis history
+                </h4>
+
+                <p>
+                    Completed analyses will appear here.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        state.history
+            .map(
+                entry => {
+
+                    const icon =
+                        getHistoryIcon(
+                            entry.type
+                        );
+
+                    const time =
+                        formatDate(
+                            entry.timestamp
+                        );
+
+
+                    return `
+
+                        <div class="history-item">
+
+                            <div class="history-type">
+                                ${icon}
+                            </div>
+
+                            <div class="history-main">
+
+                                <strong>
+                                    ${escapeHtml(
+                                        entry.type
+                                    )}
+                                </strong>
+
+                                <p>
+                                    ${escapeHtml(
+                                        truncate(
+                                            entry.input,
+                                            100
+                                        )
+                                    )}
+                                </p>
+
+                            </div>
+
+                            <div class="history-time">
+                                ${escapeHtml(time)}
+                            </div>
+
+                        </div>
+
+                    `;
                 }
+            )
+            .join("");
+}
+
+
+function getHistoryIcon(
+    type
+) {
+
+    const icons = {
+
+        Message:
+            "✉",
+
+        URL:
+            "↗",
+
+        Website:
+            "◫",
+
+        "QR Code":
+            "▦"
+    };
+
+
+    return (
+        icons[type] ||
+        "⌁"
+    );
+}
+
+
+function formatDate(
+    timestamp
+) {
+
+    try {
+
+        return new Date(
+            timestamp
+        ).toLocaleString(
+            [],
+            {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    } catch {
+
+        return "Unknown";
+    }
+}
+
+
+/* ============================================================
+   CLEAR HISTORY
+   ============================================================ */
+
+const clearHistoryButton =
+    $("#clearHistoryButton");
+
+if (clearHistoryButton) {
+
+    clearHistoryButton.addEventListener(
+        "click",
+        () => {
+
+            if (
+                state.history.length === 0
+            ) {
+
+                showToast(
+                    "Nothing to clear",
+                    "There is no analysis history.",
+                    "error"
+                );
 
                 return;
             }
 
-            if (
-                typeof state !== "undefined"
-            ) {
-                state.organisation = value;
-            }
 
-            localStorage.setItem(
-                "cyberguard_organisation",
-                value
+            state.history =
+                [];
+
+            saveHistory();
+
+            renderHistory();
+
+
+            showToast(
+                "History cleared",
+                "Analysis history has been removed from this browser.",
+                "success"
             );
+        }
+    );
+}
 
-            if (
-                typeof updateOrganisationUI ===
-                "function"
-            ) {
-                updateOrganisationUI();
-            }
 
-            if (
-                typeof showToast === "function"
-            ) {
-                showToast(
-                    "Organisation updated",
-                    "Your organisation name has been updated.",
-                    "success"
-                );
-            }
-        };
+/* ============================================================
+   ORGANISATION SETTINGS
+   ============================================================ */
+
+function initializeOrganisationSettings() {
+
+    const saveButton =
+        $("#saveOrganisationButton");
+
+    const input =
+        $("#organisationInput");
+
+
+    if (
+        !saveButton ||
+        !input
+    ) {
+
+        return;
     }
 
 
-    /* --------------------------------------------------------
-       NEW ANALYSIS
-       -------------------------------------------------------- */
+    input.value =
+        state.organisation;
 
-    document.querySelectorAll(
-        "#newAnalysisButton, [data-new-analysis]"
-    ).forEach((button) => {
 
-        button.onclick = function () {
+    saveButton.addEventListener(
+        "click",
+        () => {
 
-            if (typeof navigateTo === "function") {
-                navigateTo("phishing");
-            }
+            const value =
+                input.value.trim();
 
-            if (typeof activateAnalysis === "function") {
-                activateAnalysis("message");
-            }
 
-            const input =
-                document.querySelector(
-                    "#messageInput"
+            if (!value) {
+
+                showToast(
+                    "Organisation name required",
+                    "Enter an organisation name first.",
+                    "error"
                 );
 
-            if (input) {
-                input.focus();
+                return;
             }
-        };
-    });
 
 
-    /* --------------------------------------------------------
-       CLEAR HISTORY
-       -------------------------------------------------------- */
+            state.organisation =
+                value;
 
-    const clearHistory =
-        document.querySelector(
-            "#clearHistoryButton"
+
+            try {
+
+                localStorage.setItem(
+                    CONFIG.ORGANISATION_KEY,
+                    value
+                );
+
+            } catch (error) {
+
+                console.warn(
+                    "[CyberGuard] Organisation could not be saved:",
+                    error
+                );
+            }
+
+
+            updateOrganisationUI();
+
+
+            showToast(
+                "Organisation updated",
+                "CyberGuard interface context has been updated.",
+                "success"
+            );
+        }
+    );
+}
+
+
+function loadOrganisation() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                CONFIG.ORGANISATION_KEY
+            );
+
+        if (
+            saved &&
+            saved.trim()
+        ) {
+
+            state.organisation =
+                saved.trim();
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not load organisation:",
+            error
+        );
+    }
+}
+
+
+function updateOrganisationUI() {
+
+    const topName =
+        $("#topOrganisationName");
+
+    const displayName =
+        $("#organisationDisplayName");
+
+    const input =
+        $("#organisationInput");
+
+
+    if (topName) {
+
+        topName.textContent =
+            state.organisation;
+    }
+
+
+    if (displayName) {
+
+        displayName.textContent =
+            state.organisation;
+    }
+
+
+    if (
+        input &&
+        document.activeElement !== input
+    ) {
+
+        input.value =
+            state.organisation;
+    }
+}
+
+
+/* ============================================================
+   UTILITY FUNCTIONS
+   ============================================================ */
+
+function safePrettyPrint(
+    value
+) {
+
+    try {
+
+        return JSON.stringify(
+            value,
+            null,
+            2
         );
 
-    if (clearHistory) {
+    } catch {
 
-        clearHistory.onclick = function () {
+        return String(value);
+    }
+}
 
-            if (
-                typeof state !== "undefined"
-            ) {
-                state.history = [];
-            }
 
-            localStorage.removeItem(
-                "cyberguard_analysis_history"
-            );
+function summarizeResult(
+    value
+) {
 
-            if (
-                typeof renderHistory ===
-                "function"
-            ) {
-                renderHistory();
-            }
+    const normalized =
+        normalizeResult(
+            value
+        );
 
-            if (
-                typeof showToast ===
-                "function"
-            ) {
-                showToast(
-                    "History cleared",
-                    "Analysis history has been removed.",
-                    "success"
-                );
-            }
-        };
+
+    if (
+        normalized.label
+    ) {
+
+        return normalized.label;
     }
 
 
-    console.log(
-        "[CyberGuard] UI controls successfully bound."
-    );
+    if (
+        normalized.message
+    ) {
 
-});
+        return truncate(
+            normalized.message,
+            100
+        );
+    }
+
+
+    return "Analysis completed";
+}
+
+
+function truncate(
+    value,
+    length
+) {
+
+    const string =
+        String(
+            value ||
+            ""
+        );
+
+
+    if (
+        string.length <=
+        length
+    ) {
+
+        return string;
+    }
+
+
+    return (
+        string.slice(
+            0,
+            length - 1
+        ) +
+        "…"
+    );
+}
+
+
+function formatFileSize(
+    bytes
+) {
+
+    if (
+        bytes <
+        1024
+    ) {
+
+        return `${bytes} B`;
+    }
+
+
+    if (
+        bytes <
+        1024 * 1024
+    ) {
+
+        return `${(
+            bytes /
+            1024
+        ).toFixed(1)} KB`;
+    }
+
+
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
+}
+
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ||
+        ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* ============================================================
+   ERROR MESSAGE
+   ============================================================ */
+
+function getErrorMessage(
+    error
+) {
+
+    if (
+        error &&
+        typeof error.message ===
+        "string"
+    ) {
+
+        return error.message;
+    }
+
+
+    return (
+        "The detection engine returned an unexpected error."
+    );
+}
+
+
+/* ============================================================
+   MESSAGE TYPE DISPLAY
+   ============================================================ */
+
+const messageType =
+    $("#messageType");
+
+if (messageType) {
+
+    messageType.addEventListener(
+        "change",
+        () => {
+
+            const textarea =
+                $("#messageInput");
+
+            if (!textarea) {
+                return;
+            }
+
+
+            const type =
+                messageType.value;
+
+
+            const placeholders = {
+
+                "Email":
+                    "Paste the suspicious email content here...",
+
+                "SMS / Message":
+                    "Paste the suspicious SMS or message here...",
+
+                "Social Media":
+                    "Paste the suspicious social-media message here..."
+            };
+
+
+            textarea.placeholder =
+                placeholders[type] ||
+                "Paste suspicious content here...";
+        }
+    );
+}
+
+
+/* ============================================================
+   KEYBOARD SHORTCUT
+   ============================================================ */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        /*
+         * Ctrl + K focuses the main phishing input.
+         */
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() === "k"
+        ) {
+
+            event.preventDefault();
+
+            navigateTo("phishing");
+
+            activateAnalysis("message");
+
+            $("#messageInput")
+                ?.focus();
+        }
+    }
+);
+
+
+/* ============================================================
+   DEVELOPMENT LOG
+   ============================================================ */
+
+console.log(
+    "%cCYBERGUARD",
+    "font-size:20px;font-weight:800;color:#60a5fa;"
+);
+
+console.log(
+    "%cOrganisation Security Platform",
+    "font-size:11px;color:#94a3b8;"
+);
+
+console.log(
+    "[CyberGuard] Frontend initialized."
+);
+
+console.log(
+    "[CyberGuard] Hugging Face Space:",
+    CONFIG.HF_SPACE
+);
+
+console.log(
+    "[CyberGuard] Endpoints:",
+    CONFIG.ENDPOINTS
+);
