@@ -1,1745 +1,275 @@
 /* ============================================================
-   CYBERGUARD
-   Organisation Security Platform
-
-   Frontend:
-   - Vanilla JavaScript
-   - Hugging Face Gradio Client
-   - No backend token exposed in browser
-
-   Connected Space:
-   saswatpatra/cyberguard_phishing
-
-   Current API endpoints:
-   /analyze_message
-   /analyze_website
-   /scan_qr
-   ============================================================ */
-
-
-/* ============================================================
-   CONFIGURATION
-   ============================================================ */
-
-const CONFIG = {
-
-    HF_SPACE:
-        "saswatpatra/cyberguard_phishing",
-
-    ENDPOINTS: {
-
-        MESSAGE:
-            "/analyze_message",
-
-        WEBSITE:
-            "/analyze_website",
-
-        QR:
-            "/scan_qr"
-    },
-
-    MAX_MESSAGE_LENGTH:
-        15000,
-
-    MAX_QR_SIZE:
-        10 * 1024 * 1024,
-
-    HISTORY_KEY:
-        "cyberguard_analysis_history",
-
-    ORGANISATION_KEY:
-        "cyberguard_organisation"
-};
-
-
-/* ============================================================
-   GLOBAL STATE
-   ============================================================ */
-
-const state = {
-
-    gradioClient: null,
-
-    gradioHandleFile: null,
-
-    clientLoading: false,
-
-    currentView:
-        "overview",
-
-    currentAnalysis:
-        "message",
-
-    currentUrlMode:
-        "url",
-
-    selectedQrFile:
-        null,
-
-    history:
-        [],
-
-    organisation:
-        "Your Organisation"
-};
-
-
-/* ============================================================
-   DOM HELPERS
-   ============================================================ */
-
-function $(selector) {
-
-    return document.querySelector(selector);
-}
-
-
-function $$(selector) {
-
-    return document.querySelectorAll(selector);
-}
-
-
-/* ============================================================
-   INITIALIZATION
-   ============================================================ */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    initializeCyberGuard
-);
-
-
-async function initializeCyberGuard() {
-
-    loadOrganisation();
-
-    loadHistory();
-
-    initializeNavigation();
-
-    initializeAnalysisTabs();
-
-    initializeMessageInput();
-
-    initializeUrlControls();
-
-    initializeQrControls();
-
-    initializeQuickActions();
-
-    initializeRawToggles();
-
-    initializeOrganisationSettings();
-
-    initializeGlobalControls();
-
-    updateOrganisationUI();
-
-    await initializeGradioClient();
-}
-
-
-/* ============================================================
-   GRADIO CLIENT
-   ============================================================ */
-
-async function initializeGradioClient() {
-
-    if (state.gradioClient) {
-        return state.gradioClient;
-    }
-
-    if (state.clientLoading) {
-        return null;
-    }
-
-    state.clientLoading = true;
-
-    try {
-
-        /*
-         * The @gradio/client package is loaded in index.html.
-         * We dynamically import the same CDN package here so
-         * script.js remains a normal JavaScript file.
-         */
-
-        const gradioModule = await import(
-            "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"
-        );
-
-        const Client =
-            gradioModule.Client;
-
-        const handleFile =
-            gradioModule.handle_file;
-
-        if (!Client) {
-
-            throw new Error(
-                "Gradio Client could not be loaded."
-            );
-        }
-
-        state.gradioHandleFile =
-            handleFile;
-
-        state.gradioClient =
-            await Client.connect(
-                CONFIG.HF_SPACE
-            );
-
-        console.log(
-            "[CyberGuard] Connected to Hugging Face Space:",
-            CONFIG.HF_SPACE
-        );
-
-        showToast(
-            "Engine connected",
-            "CyberGuard detection engine is ready.",
-            "success"
-        );
-
-        return state.gradioClient;
-
-    } catch (error) {
-
-        console.error(
-            "[CyberGuard] Gradio connection failed:",
-            error
-        );
-
-        showToast(
-            "Engine connection issue",
-            "The interface loaded, but the Hugging Face engine could not be connected.",
-            "error"
-        );
-
-        return null;
-
-    } finally {
-
-        state.clientLoading =
-            false;
-    }
-}
-
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
-
-function initializeNavigation() {
-
-    $$(".nav-item").forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const view =
-                        button.dataset.view;
-
-                    if (!view) {
-                        return;
-                    }
-
-                    navigateTo(view);
-                }
-            );
-        }
-    );
-
-
-    $$("[data-view-target]").forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    navigateTo(
-                        button.dataset.viewTarget
-                    );
-                }
-            );
-        }
-    );
-}
-
-
-function navigateTo(viewName) {
-
-    const view =
-        $(`#view-${viewName}`);
-
-    if (!view) {
-        return;
-    }
-
-    $$(".view").forEach(
-        viewElement => {
-            viewElement.classList.remove(
-                "active"
-            );
-        }
-    );
-
-    view.classList.add("active");
-
-
-    $$(".nav-item").forEach(
-        item => {
-
-            item.classList.toggle(
-                "active",
-                item.dataset.view === viewName
-            );
-        }
-    );
-
-
-    state.currentView =
-        viewName;
-
-
-    const names = {
-
-        overview:
-            "Security Overview",
-
-        phishing:
-            "Phishing Detection",
-
-        takeover:
-            "Account Takeover",
-
-        impersonation:
-            "Digital Impersonation",
-
-        activity:
-            "Analysis History",
-
-        organisation:
-            "Organisation"
-    };
-
-
-    const breadcrumb =
-        $("#breadcrumbCurrent");
-
-    if (breadcrumb) {
-
-        breadcrumb.textContent =
-            names[viewName] ||
-            "CyberGuard";
-    }
-
-
-    closeMobileSidebar();
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-
-
-/* ============================================================
-   MOBILE NAVIGATION
-   ============================================================ */
-
-function initializeGlobalControls() {
-
-    const mobileMenu =
-        $("#mobileMenu");
-
-    if (mobileMenu) {
-
-        mobileMenu.addEventListener(
-            "click",
-            () => {
-
-                const sidebar =
-                    $("#sidebar");
-
-                sidebar.classList.toggle(
-                    "mobile-open"
-                );
-            }
-        );
-    }
-}
-
-
-function closeMobileSidebar() {
-
-    const sidebar =
-        $("#sidebar");
-
-    if (sidebar) {
-
-        sidebar.classList.remove(
-            "mobile-open"
-        );
-    }
-}
-
-
-/* ============================================================
-   ANALYSIS TABS
-   ============================================================ */
-
-function initializeAnalysisTabs() {
-
-    $$(".analysis-tab").forEach(
-        tab => {
-
-            tab.addEventListener(
-                "click",
-                () => {
-
-                    activateAnalysis(
-                        tab.dataset.analysis
-                    );
-                }
-            );
-        }
-    );
-}
-
-
-function activateAnalysis(
-    analysisType
-) {
-
-    const panel =
-        $(`#analysis-${analysisType}`);
-
-    if (!panel) {
-        return;
-    }
-
-    state.currentAnalysis =
-        analysisType;
-
-
-    $$(".analysis-tab").forEach(
-        tab => {
-
-            tab.classList.toggle(
-                "active",
-                tab.dataset.analysis ===
-                analysisType
-            );
-        }
-    );
-
-
-    $$(".analysis-panel").forEach(
-        analysisPanel => {
-
-            analysisPanel.classList.remove(
-                "active"
-            );
-        }
-    );
-
-
-    panel.classList.add("active");
-}
-
-
-/* ============================================================
-   QUICK ACTIONS
-   ============================================================ */
-
-function initializeQuickActions() {
-
-    $$(".quick-action").forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    navigateTo("phishing");
-
-                    activateAnalysis(
-                        button.dataset.analysis
-                    );
-                }
-            );
-        }
-    );
-
-
-    const openPhishingButton =
-        $("#openPhishingButton");
-
-    if (openPhishingButton) {
-
-        openPhishingButton.addEventListener(
-            "click",
-            () => {
-
-                navigateTo("phishing");
-
-                activateAnalysis("message");
-            }
-        );
-    }
-}
-
-
-/* ============================================================
-   MESSAGE INPUT
-   ============================================================ */
-
-function initializeMessageInput() {
-
-    const textarea =
-        $("#messageInput");
-
-    const counter =
-        $("#messageCount");
-
-    if (!textarea) {
-        return;
-    }
-
-    textarea.addEventListener(
-        "input",
-        () => {
-
-            const length =
-                textarea.value.length;
-
-            counter.textContent =
-                length.toLocaleString();
-
-            if (
-                length >
-                CONFIG.MAX_MESSAGE_LENGTH
-            ) {
-
-                textarea.value =
-                    textarea.value.slice(
-                        0,
-                        CONFIG.MAX_MESSAGE_LENGTH
-                    );
-
-                counter.textContent =
-                    CONFIG.MAX_MESSAGE_LENGTH
-                        .toLocaleString();
-            }
-        }
-    );
-
-
-    const clearButton =
-        $("#clearMessage");
-
-    if (clearButton) {
-
-        clearButton.addEventListener(
-            "click",
-            () => {
-
-                textarea.value = "";
-
-                counter.textContent =
-                    "0";
-
-                resetResult("message");
-            }
-        );
-    }
-
-
-    const scanButton =
-        $("#scanMessageButton");
-
-    if (scanButton) {
-
-        scanButton.addEventListener(
-            "click",
-            analyzeMessage
-        );
-    }
-}
-
-
-/* ============================================================
-   MESSAGE ANALYSIS
-   ============================================================ */
-
-async function analyzeMessage() {
-
-    const messageInput =
-        $("#messageInput");
-
-    const messageType =
-        $("#messageType");
-
-    const message =
-        messageInput.value.trim();
-
-    if (!message) {
-
-        showToast(
-            "Message required",
-            "Paste a message before starting the analysis.",
-            "error"
-        );
-
-        messageInput.focus();
-
-        return;
-    }
-
-
-    if (
-        message.length >
-        CONFIG.MAX_MESSAGE_LENGTH
-    ) {
-
-        showToast(
-            "Message too long",
-            "Please keep the message within the supported input limit.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    setResultState(
-        "message",
-        "PROCESSING"
-    );
-
-    showLoading(
-        "Analysing message",
-        "CyberGuard is checking the message for phishing indicators."
-    );
-
-
-    try {
-
-        const client =
-            await ensureGradioClient();
-
-        if (!client) {
-
-            throw new Error(
-                "CyberGuard engine is unavailable."
-            );
-        }
-
-
-        /*
-         * The endpoint shown in the user's Hugging Face
-         * API documentation accepts:
-         *
-         * message: string
-         */
-
-        const result =
-            await client.predict(
-                CONFIG.ENDPOINTS.MESSAGE,
-                {
-                    message: message
-                }
-            );
-
-
-        console.log(
-            "[CyberGuard] Message result:",
-            result
-        );
-
-
-        renderAnalysisResult(
-            "message",
-            result.data,
-            {
-                inputType:
-                    messageType.value,
-
-                originalInput:
-                    message
-            }
-        );
-
-
-        addHistoryEntry({
-            type: "Message",
-            input:
-                `${messageType.value} analysis`,
-            result:
-                summarizeResult(result.data)
-        });
-
-
-        showToast(
-            "Analysis complete",
-            "The message has been processed by the CyberGuard engine.",
-            "success"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "[CyberGuard] Message analysis failed:",
-            error
-        );
-
-        renderAnalysisError(
-            "message",
-            error
-        );
-
-        showToast(
-            "Analysis failed",
-            getErrorMessage(error),
-            "error"
-        );
-
-    } finally {
-
-        hideLoading();
-    }
-}
-
-
-/* ============================================================
-   URL CONTROLS
-   ============================================================ */
-
-function initializeUrlControls() {
-
-    $$("[data-url-mode]").forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    state.currentUrlMode =
-                        button.dataset.urlMode;
-
-                    $$("[data-url-mode]").forEach(
-                        modeButton => {
-
-                            modeButton.classList.toggle(
-                                "active",
-                                modeButton.dataset.urlMode ===
-                                state.currentUrlMode
-                            );
-                        }
-                    );
-
-                    updateUrlModeUI();
-                }
-            );
-        }
-    );
-
-
-    const urlButton =
-        $("#scanUrlButton");
-
-    if (urlButton) {
-
-        urlButton.addEventListener(
-            "click",
-            analyzeUrl
-        );
-    }
-
-
-    const urlInput =
-        $("#urlInput");
-
-    if (urlInput) {
-
-        urlInput.addEventListener(
-            "keydown",
-            event => {
-
-                if (
-                    event.key === "Enter"
-                ) {
-
-                    event.preventDefault();
-
-                    analyzeUrl();
-                }
-            }
-        );
-    }
-}
-
-
-function updateUrlModeUI() {
-
-    const urlInput =
-        $("#urlInput");
-
-    if (!urlInput) {
-        return;
-    }
-
-
-    if (
-        state.currentUrlMode ===
-        "website"
-    ) {
-
-        urlInput.placeholder =
-            "https://example.com/login";
-
-    } else {
-
-        urlInput.placeholder =
-            "https://suspicious-domain.example/login";
-    }
-}
-
-
-/* ============================================================
-   URL ANALYSIS
-   ============================================================ */
-
-async function analyzeUrl() {
-
-    const urlInput =
-        $("#urlInput");
-
-    const url =
-        urlInput.value.trim();
-
-
-    if (!url) {
-
-        showToast(
-            "URL required",
-            "Enter a website or URL before starting the analysis.",
-            "error"
-        );
-
-        urlInput.focus();
-
-        return;
-    }
-
-
-    if (!isValidUrl(url)) {
-
-        showToast(
-            "Invalid URL",
-            "Please enter a complete URL such as https://example.com.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    setResultState(
-        "url",
-        "PROCESSING"
-    );
-
-    showLoading(
-        state.currentUrlMode === "website"
-            ? "Analysing website"
-            : "Analysing URL",
-        "CyberGuard is checking the destination for suspicious indicators."
-    );
-
-
-    try {
-
-        const client =
-            await ensureGradioClient();
-
-        if (!client) {
-
-            throw new Error(
-                "CyberGuard engine is unavailable."
-            );
-        }
-
-
-        /*
-         * The endpoint shown in the user's Hugging Face
-         * API documentation accepts:
-         *
-         * url: string
-         */
-
-        const result =
-            await client.predict(
-                CONFIG.ENDPOINTS.WEBSITE,
-                {
-                    url: url
-                }
-            );
-
-
-        console.log(
-            "[CyberGuard] URL result:",
-            result
-        );
-
-
-        renderAnalysisResult(
-            "url",
-            result.data,
-            {
-                originalInput:
-                    url,
-
-                inputType:
-                    state.currentUrlMode === "website"
-                        ? "Fraudulent Website"
-                        : "Malicious / Deceptive URL"
-            }
-        );
-
-
-        addHistoryEntry({
-            type:
-                state.currentUrlMode === "website"
-                    ? "Website"
-                    : "URL",
-
-            input:
-                url,
-
-            result:
-                summarizeResult(result.data)
-        });
-
-
-        showToast(
-            "Analysis complete",
-            "The destination has been processed by the CyberGuard engine.",
-            "success"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "[CyberGuard] URL analysis failed:",
-            error
-        );
-
-        renderAnalysisError(
-            "url",
-            error
-        );
-
-        showToast(
-            "Analysis failed",
-            getErrorMessage(error),
-            "error"
-        );
-
-    } finally {
-
-        hideLoading();
-    }
-}
-
-
-/* ============================================================
-   URL VALIDATION
-   ============================================================ */
-
-function isValidUrl(value) {
-
-    try {
-
-        const url =
-            new URL(value);
-
-        return (
-            url.protocol === "http:" ||
-            url.protocol === "https:"
-        );
-
-    } catch {
-
-        return false;
-    }
-}
-
-
-/* ============================================================
-   QR CONTROLS
-   ============================================================ */
-
-function initializeQrControls() {
-
-    const fileInput =
-        $("#qrInput");
-
-    const chooseButton =
-        $("#chooseQrButton");
-
-    const dropZone =
-        $("#qrDropZone");
-
-    const removeButton =
-        $("#removeQrFile");
-
-    const scanButton =
-        $("#scanQrButton");
-
-
-    if (
-        !fileInput ||
-        !dropZone
-    ) {
-
-        return;
-    }
-
-
-    chooseButton.addEventListener(
-        "click",
-        () => {
-
-            fileInput.click();
-        }
-    );
-
-
-    fileInput.addEventListener(
-        "change",
-        () => {
-
-            if (
-                fileInput.files &&
-                fileInput.files[0]
-            ) {
-
-                setQrFile(
-                    fileInput.files[0]
-                );
-            }
-        }
-    );
-
-
-    [
-        "dragenter",
-        "dragover"
-    ].forEach(
-        eventName => {
-
-            dropZone.addEventListener(
-                eventName,
-                event => {
-
-                    event.preventDefault();
-
-                    dropZone.classList.add(
-                        "dragover"
-                    );
-                }
-            );
-        }
-    );
-
-
-    [
-        "dragleave",
-        "drop"
-    ].forEach(
-        eventName => {
-
-            dropZone.addEventListener(
-                eventName,
-                event => {
-
-                    event.preventDefault();
-
-                    dropZone.classList.remove(
-                        "dragover"
-                    );
-                }
-            );
-        }
-    );
-
-
-    dropZone.addEventListener(
-        "drop",
-        event => {
-
-            const files =
-                event.dataTransfer.files;
-
-            if (
-                files &&
-                files[0]
-            ) {
-
-                setQrFile(
-                    files[0]
-                );
-            }
-        }
-    );
-
-
-    removeButton.addEventListener(
-        "click",
-        clearQrFile
-    );
-
-
-    scanButton.addEventListener(
-        "click",
-        analyzeQr
-    );
-}
-
-
-/* ============================================================
-   SET QR FILE
-   ============================================================ */
-
-function setQrFile(file) {
-
-    if (!file) {
-        return;
-    }
-
-
-    if (
-        !file.type.startsWith("image/")
-    ) {
-
-        showToast(
-            "Invalid file",
-            "Please select a PNG, JPG or WEBP image.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (
-        file.size >
-        CONFIG.MAX_QR_SIZE
-    ) {
-
-        showToast(
-            "File too large",
-            "Please choose an image smaller than 10 MB.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    state.selectedQrFile =
-        file;
-
-
-    $("#qrFileName").textContent =
-        file.name;
-
-    $("#qrFileSize").textContent =
-        formatFileSize(file.size);
-
-
-    $("#selectedQrFile")
-        .classList.remove(
-            "hidden"
-        );
-
-
-    $("#scanQrButton")
-        .disabled =
-        false;
-}
-
-
-/* ============================================================
-   CLEAR QR
-   ============================================================ */
-
-function clearQrFile() {
-
-    state.selectedQrFile =
-        null;
-
-    const input =
-        $("#qrInput");
-
-    if (input) {
-        input.value = "";
-    }
-
-    $("#selectedQrFile")
-        .classList.add(
-            "hidden"
-        );
-
-    $("#scanQrButton")
-        .disabled =
-        true;
-
-    resetResult("qr");
-}
-
-
-/* ============================================================
-   QR ANALYSIS
-   ============================================================ */
-
-async function analyzeQr() {
-
-    const file =
-        state.selectedQrFile;
-
-
-    if (!file) {
-
-        showToast(
-            "QR image required",
-            "Upload a QR code image before starting the analysis.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    setResultState(
-        "qr",
-        "PROCESSING"
-    );
-
-    showLoading(
-        "Scanning QR code",
-        "CyberGuard is processing the uploaded QR image."
-    );
-
-
-    try {
-
-        const client =
-            await ensureGradioClient();
-
-        if (!client) {
-
-            throw new Error(
-                "CyberGuard engine is unavailable."
-            );
-        }
-
-
-        if (
-            typeof state.gradioHandleFile !==
-            "function"
-        ) {
-
-            throw new Error(
-                "The Gradio file handler could not be loaded."
-            );
-        }
-
-
-        /*
-         * The endpoint shown in the user's Hugging Face
-         * API documentation accepts:
-         *
-         * image: File / Blob / Buffer
-         *
-         * handle_file() converts the browser File
-         * into the appropriate Gradio file input.
-         */
-
-        const result =
-            await client.predict(
-                CONFIG.ENDPOINTS.QR,
-                {
-                    image:
-                        state.gradioHandleFile(
-                            file
-                        )
-                }
-            );
-
-
-        console.log(
-            "[CyberGuard] QR result:",
-            result
-        );
-
-
-        renderAnalysisResult(
-            "qr",
-            result.data,
-            {
-                inputType:
-                    "QR Code",
-
-                originalInput:
-                    file.name
-            }
-        );
-
-
-        addHistoryEntry({
-            type:
-                "QR Code",
-
-            input:
-                file.name,
-
-            result:
-                summarizeResult(result.data)
-        });
-
-
-        showToast(
-            "QR analysis complete",
-            "The QR image has been processed by the CyberGuard engine.",
-            "success"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "[CyberGuard] QR analysis failed:",
-            error
-        );
-
-        renderAnalysisError(
-            "qr",
-            error
-        );
-
-        showToast(
-            "QR analysis failed",
-            getErrorMessage(error),
-            "error"
-        );
-
-    } finally {
-
-        hideLoading();
-    }
-}
-
-
-/* ============================================================
-   ENSURE GRADIO CLIENT
-   ============================================================ */
-
-async function ensureGradioClient() {
-
-    if (
-        state.gradioClient
-    ) {
-
-        return state.gradioClient;
-    }
-
-
-    return await initializeGradioClient();
-}
-
-
-/* ============================================================
-   RESULT STATE
-   ============================================================ */
-
-function setResultState(
-    type,
-    status
-) {
-
-    const stateElement =
-        $(`#${type}ResultState`);
-
-    if (!stateElement) {
-        return;
-    }
-
-
-    stateElement.className =
-        "result-state";
-
-
-    if (
-        status ===
-        "PROCESSING"
-    ) {
-
-        stateElement.classList.add(
-            "processing"
-        );
-    }
-
-
-    if (
-        status ===
-        "COMPLETE"
-    ) {
-
-        stateElement.classList.add(
-            "success"
-        );
-    }
-
-
-    if (
-        status ===
-        "ERROR"
-    ) {
-
-        stateElement.classList.add(
-            "danger"
-        );
-    }
-
-
-    stateElement.textContent =
-        status;
-}
-
-
-/* ============================================================
-   RENDER ANALYSIS RESULT
-   ============================================================ */
-
-function renderAnalysisResult(
-    type,
-    rawData,
-    metadata = {}
-) {
-
-    const normalized =
-        normalizeResult(
-            rawData
-        );
-
-
-    const empty =
-        $(`#${type}ResultEmpty`);
-
-    const content =
-        $(`#${type}ResultContent`);
-
-
-    if (empty) {
-        empty.classList.add(
-            "hidden"
-        );
-    }
-
-    if (content) {
-        content.classList.remove(
-            "hidden"
-        );
-    }
-
-
-    setResultState(
-        type,
-        "COMPLETE"
-    );
-
-
-    const risk =
-        determineRisk(
-            normalized
-        );
-
-
-    const indicator =
-        $(`#${type}RiskIndicator`);
-
-    const label =
-        $(`#${type}RiskLabel`);
-
-
-    if (indicator) {
-
-        indicator.className =
-            "risk-indicator";
-
-        indicator.classList.add(
-            risk.className
-        );
-    }
-
-
-    if (label) {
-
-        label.textContent =
-            risk.label;
-    }
-
-
-    const title =
-        $(`#${type}ThreatTitle`);
-
-    if (title) {
-
-        title.textContent =
-            risk.title;
-    }
-
-
-    const description =
-        $(`#${type}ThreatDescription`);
-
-    if (description) {
-
-        description.textContent =
-            risk.description;
-    }
-
-
-    const confidence =
-        $(`#${type}Confidence`);
-
-    if (
-        confidence &&
-        normalized.confidence !== null
-    ) {
-
-        confidence.textContent =
-            formatConfidence(
-                normalized.confidence
-            );
-    }
-
-
-    const inputType =
-        $(`#${type}InputType`);
-
-    if (
-        inputType &&
-        metadata.inputType
-    ) {
-
-        inputType.textContent =
-            metadata.inputType;
-    }
-
-
-    const indicators =
-        $(`#${type}Indicators`);
-
-    if (indicators) {
-
-        indicators.innerHTML = "";
-
-        const items =
-            buildIndicators(
-                normalized
-            );
-
-        items.forEach(
-            item => {
-
-                const element =
-                    document.createElement(
-                        "div"
-                    );
-
-                element.className =
-                    "indicator";
-
-                element.textContent =
-                    item;
-
-                indicators.appendChild(
-                    element
-                );
-            }
-        );
-    }
-
-
-    const analysedUrl =
-        $("#analysedUrl");
-
-    if (
-        type === "url" &&
-        analysedUrl &&
-        metadata.originalInput
-    ) {
-
-        analysedUrl.textContent =
-            metadata.originalInput;
-    }
-
-
-    const raw =
-        $(`#${type}Raw`);
-
-    if (raw) {
-
-        raw.textContent =
-            safePrettyPrint(
-                rawData
-            );
-    }
-
-
-    /*
-     * The engine may return a different structure depending
-     * on how cyberphishing_engine.py formats its output.
-     * We therefore preserve the complete raw response while
-     * extracting common fields where possible.
-     */
-
-    console.log(
-        `[CyberGuard] Normalized ${type} result:`,
-        normalized
-    );
-}
-
-
-/* ============================================================
    NORMALIZE RESULT
+   Handles nested CyberGuard engine responses
    ============================================================ */
 
 function normalizeResult(data) {
 
-    let value =
-        unwrapGradioData(
-            data
-        );
+    let value = unwrapGradioData(data);
 
+    /* If the engine returns JSON as a string */
+    if (typeof value === "string") {
 
-    if (
-        typeof value ===
-        "string"
-    ) {
-
-        const parsed =
-            tryParseJson(
-                value
-            );
+        const parsed = tryParseJson(value);
 
         if (parsed !== null) {
-
-            value =
-                parsed;
+            value = parsed;
         }
     }
 
-
     const result = {
+        raw: value,
 
-        raw:
-            value,
+        label: null,
+        confidence: null,
 
-        label:
-            null,
+        indicators: [],
 
-        confidence:
-            null,
+        message: null,
+        threat: null,
 
-        indicators:
-            [],
+        status: null,
+        riskLevel: null,
+        riskScore: null,
 
-        message:
-            null,
+        prediction: null,
+        recommendation: null,
 
-        threat:
-            null
+        categories: {},
+        payload: null,
+        payloadType: null
     };
-
 
     if (
         value === null ||
         value === undefined
     ) {
-
         return result;
     }
 
+    /*
+     * Gradio may return:
+     *
+     * [
+     *   {
+     *      payload: "...",
+     *      payload_type: "TEXT",
+     *      analysis: {
+     *          ...
+     *      }
+     *   }
+     * ]
+     */
 
-    if (
-        typeof value ===
-        "string"
-    ) {
+    let object = value;
 
-        result.message =
-            value;
-
-        result.label =
-            value;
-
-        return result;
-    }
-
-
-    if (
-        Array.isArray(value)
-    ) {
+    if (Array.isArray(value)) {
 
         result.indicators =
-            flattenStrings(
-                value
-            );
+            flattenStrings(value);
 
-        const firstObject =
+        object =
             value.find(
                 item =>
                     item &&
-                    typeof item ===
-                    "object"
-            );
-
-        if (firstObject) {
-
-            mergeObjectFields(
-                result,
-                firstObject
-            );
-        }
-
-        return result;
+                    typeof item === "object"
+            ) || value[0];
     }
-
 
     if (
-        typeof value ===
-        "object"
+        !object ||
+        typeof object !== "object"
     ) {
+        result.message =
+            String(object);
 
-        mergeObjectFields(
-            result,
-            value
-        );
+        result.label =
+            String(object);
 
         return result;
     }
 
+    /*
+     * Extract top-level payload information
+     */
 
-    result.message =
-        String(value);
+    if (object.payload !== undefined) {
+        result.payload =
+            object.payload;
+    }
+
+    if (object.payload_type !== undefined) {
+        result.payloadType =
+            object.payload_type;
+    }
+
+    /*
+     * IMPORTANT:
+     * The actual CyberGuard engine response puts
+     * the useful information inside "analysis".
+     */
+
+    const analysis =
+        object.analysis &&
+        typeof object.analysis === "object"
+            ? object.analysis
+            : object;
+
+    mergeObjectFields(
+        result,
+        analysis
+    );
+
+    /*
+     * Also inspect top-level fields in case another
+     * endpoint returns them there.
+     */
+
+    if (analysis !== object) {
+        mergeObjectFields(
+            result,
+            object
+        );
+    }
+
+    /*
+     * Explicit engine fields
+     */
+
+    if (
+        analysis.status !== undefined
+    ) {
+        result.status =
+            String(analysis.status);
+    }
+
+    if (
+        analysis.risk_level !== undefined
+    ) {
+        result.riskLevel =
+            String(analysis.risk_level);
+    }
+
+    if (
+        analysis.risk_score !== undefined
+    ) {
+        const score =
+            Number(analysis.risk_score);
+
+        if (Number.isFinite(score)) {
+            result.riskScore = score;
+        }
+    }
+
+    if (
+        analysis.model_prediction !== undefined
+    ) {
+        result.prediction =
+            String(
+                analysis.model_prediction
+            );
+    }
+
+    if (
+        analysis.model_confidence !== undefined
+    ) {
+        const confidence =
+            Number(
+                analysis.model_confidence
+            );
+
+        if (Number.isFinite(confidence)) {
+            result.confidence =
+                confidence;
+        }
+    }
+
+    if (
+        analysis.recommendation !== undefined
+    ) {
+        result.recommendation =
+            String(
+                analysis.recommendation
+            );
+    }
+
+    if (
+        analysis.detected_categories !== undefined
+    ) {
+        result.categories =
+            analysis.detected_categories;
+    }
+
+    /*
+     * Better primary label
+     */
+
+    if (
+        result.prediction
+    ) {
+        result.label =
+            result.prediction;
+    }
+
+    /*
+     * Better message
+     */
+
+    if (
+        !result.message &&
+        result.status
+    ) {
+        result.message =
+            result.status;
+    }
+
+    /*
+     * Recommendation should appear as an
+     * indicator rather than raw JSON.
+     */
+
+    if (
+        result.recommendation
+    ) {
+        result.indicators.push(
+            `Recommendation: ${result.recommendation}`
+        );
+    }
+
+    /*
+     * Risk level
+     */
+
+    if (
+        result.riskLevel
+    ) {
+        result.indicators.push(
+            `Risk Level: ${result.riskLevel}`
+        );
+    }
+
+    /*
+     * Status
+     */
+
+    if (
+        result.status
+    ) {
+        result.indicators.push(
+            `Status: ${result.status}`
+        );
+    }
+
+    /*
+     * Remove duplicates
+     */
+
+    result.indicators = [
+        ...new Set(
+            result.indicators
+                .filter(Boolean)
+        )
+    ];
 
     return result;
 }
@@ -1754,8 +284,19 @@ function mergeObjectFields(
     object
 ) {
 
-    const labelKeys = [
+    if (
+        !object ||
+        typeof object !== "object"
+    ) {
+        return;
+    }
 
+
+    /* --------------------------------------------------------
+       LABEL / CLASSIFICATION
+       -------------------------------------------------------- */
+
+    const labelKeys = [
         "label",
         "prediction",
         "predicted_label",
@@ -1763,10 +304,8 @@ function mergeObjectFields(
         "category",
         "result",
         "status",
-        "risk",
         "threat"
     ];
-
 
     for (
         const key of labelKeys
@@ -1774,34 +313,35 @@ function mergeObjectFields(
 
         if (
             object[key] !== undefined &&
-            object[key] !== null
+            object[key] !== null &&
+            typeof object[key] !== "object"
         ) {
 
-            if (
-                typeof object[key] !==
-                "object"
-            ) {
+            if (!result.label) {
 
                 result.label =
                     String(
                         object[key]
                     );
-
-                break;
             }
+
+            break;
         }
     }
 
 
-    const confidenceKeys = [
+    /* --------------------------------------------------------
+       CONFIDENCE
+       -------------------------------------------------------- */
 
+    const confidenceKeys = [
         "confidence",
         "score",
         "probability",
         "risk_score",
-        "phishing_probability"
+        "phishing_probability",
+        "model_confidence"
     ];
-
 
     for (
         const key of confidenceKeys
@@ -1821,8 +361,18 @@ function mergeObjectFields(
                 Number.isFinite(number)
             ) {
 
-                result.confidence =
-                    number;
+                /*
+                 * Don't overwrite an already
+                 * meaningful model confidence
+                 */
+
+                if (
+                    result.confidence === null ||
+                    key === "model_confidence"
+                ) {
+                    result.confidence =
+                        number;
+                }
 
                 break;
             }
@@ -1830,17 +380,18 @@ function mergeObjectFields(
     }
 
 
-    const indicatorKeys = [
+    /* --------------------------------------------------------
+       INDICATORS / FINDINGS
+       -------------------------------------------------------- */
 
+    const indicatorKeys = [
         "indicators",
         "features",
         "reasons",
         "signals",
         "findings",
-        "detections",
-        "recommendations"
+        "detections"
     ];
-
 
     for (
         const key of indicatorKeys
@@ -1860,8 +411,11 @@ function mergeObjectFields(
     }
 
 
-    const messageKeys = [
+    /* --------------------------------------------------------
+       MESSAGE / EXPLANATION
+       -------------------------------------------------------- */
 
+    const messageKeys = [
         "message",
         "explanation",
         "description",
@@ -1869,218 +423,49 @@ function mergeObjectFields(
         "analysis"
     ];
 
-
     for (
         const key of messageKeys
     ) {
 
         if (
-            typeof object[key] ===
-            "string"
+            typeof object[key] === "string"
         ) {
 
-            result.message =
-                object[key];
+            if (!result.message) {
+
+                result.message =
+                    object[key];
+            }
 
             break;
         }
     }
 
 
-    if (!result.threat) {
+    /* --------------------------------------------------------
+       THREAT
+       -------------------------------------------------------- */
+
+    if (
+        object.threat !== undefined &&
+        object.threat !== null &&
+        typeof object.threat !== "object"
+    ) {
+
+        result.threat =
+            String(
+                object.threat
+            );
+    }
+
+    if (
+        !result.threat &&
+        result.label
+    ) {
 
         result.threat =
             result.label;
     }
-}
-
-
-/* ============================================================
-   UNWRAP GRADIO DATA
-   ============================================================ */
-
-function unwrapGradioData(data) {
-
-    let value =
-        data;
-
-
-    /*
-     * Some Gradio functions return:
-     *
-     * [value]
-     *
-     * while others can return objects.
-     */
-
-    if (
-        Array.isArray(value) &&
-        value.length === 1
-    ) {
-
-        value =
-            value[0];
-    }
-
-
-    return value;
-}
-
-
-/* ============================================================
-   TRY JSON
-   ============================================================ */
-
-function tryParseJson(value) {
-
-    if (
-        typeof value !==
-        "string"
-    ) {
-
-        return null;
-    }
-
-
-    try {
-
-        return JSON.parse(
-            value
-        );
-
-    } catch {
-
-        return null;
-    }
-}
-
-
-/* ============================================================
-   FLATTEN STRINGS
-   ============================================================ */
-
-function flattenStrings(
-    value
-) {
-
-    const output = [];
-
-
-    function walk(item) {
-
-        if (
-            item === null ||
-            item === undefined
-        ) {
-
-            return;
-        }
-
-
-        if (
-            typeof item ===
-            "string"
-        ) {
-
-            const cleaned =
-                item.trim();
-
-            if (cleaned) {
-
-                output.push(
-                    cleaned
-                );
-            }
-
-            return;
-        }
-
-
-        if (
-            typeof item ===
-            "number" ||
-            typeof item ===
-            "boolean"
-        ) {
-
-            output.push(
-                String(item)
-            );
-
-            return;
-        }
-
-
-        if (
-            Array.isArray(item)
-        ) {
-
-            item.forEach(
-                walk
-            );
-
-            return;
-        }
-
-
-        if (
-            typeof item ===
-            "object"
-        ) {
-
-            Object.entries(
-                item
-            ).forEach(
-                ([key, val]) => {
-
-                    if (
-                        typeof val ===
-                        "string" ||
-                        typeof val ===
-                        "number" ||
-                        typeof val ===
-                        "boolean"
-                    ) {
-
-                        output.push(
-                            `${formatKey(key)}: ${val}`
-                        );
-
-                    } else {
-
-                        walk(val);
-                    }
-                }
-            );
-        }
-    }
-
-
-    walk(value);
-
-
-    return [
-        ...new Set(output)
-    ];
-}
-
-
-/* ============================================================
-   FORMAT KEY
-   ============================================================ */
-
-function formatKey(key) {
-
-    return String(key)
-        .replace(
-            /[_-]+/g,
-            " "
-        )
-        .replace(
-            /\b\w/g,
-            char =>
-                char.toUpperCase()
-        );
 }
 
 
@@ -2092,158 +477,175 @@ function determineRisk(
     normalized
 ) {
 
-    const text =
-        [
-            normalized.label,
-            normalized.message,
-            normalized.threat,
-            ...normalized.indicators
-        ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-
-    const confidence =
-        normalized.confidence;
-
-
     /*
-     * Explicit phishing / malicious indicators
+     * FIRST:
+     * Trust the explicit risk_level returned
+     * by the CyberGuard engine.
      */
 
-    const dangerWords = [
-
-        "phishing",
-        "malicious",
-        "malware",
-        "dangerous",
-        "fraudulent",
-        "suspicious",
-        "scam",
-        "unsafe",
-        "high risk",
-        "critical",
-        "attack",
-        "threat",
-        "credential theft"
-    ];
-
-
-    const safeWords = [
-
-        "benign",
-        "safe",
-        "legitimate",
-        "ham",
-        "clean",
-        "not phishing",
-        "no threat"
-    ];
-
-
-    const danger =
-        dangerWords.some(
-            word =>
-                text.includes(word)
-        );
-
-
-    const safe =
-        safeWords.some(
-            word =>
-                text.includes(word)
-        );
-
-
     if (
-        danger &&
-        !safe
+        normalized.riskLevel
     ) {
 
-        return {
-
-            className:
-                "danger",
-
-            label:
-                "HIGH RISK",
-
-            title:
-                "Suspicious activity detected",
-
-            description:
-                "The detection engine identified indicators associated with a potentially unsafe input."
-        };
-    }
-
-
-    if (
-        safe &&
-        !danger
-    ) {
-
-        return {
-
-            className:
-                "safe",
-
-            label:
-                "LOW RISK",
-
-            title:
-                "No major threat indicated",
-
-            description:
-                "The detection engine did not identify strong indicators of the targeted threat."
-        };
-    }
-
-
-    if (
-        confidence !== null
-    ) {
-
-        const normalizedConfidence =
-            normalizeConfidence(
-                confidence
-            );
-
+        const risk =
+            normalized.riskLevel
+                .toLowerCase();
 
         if (
-            normalizedConfidence >=
-            0.75
+            risk.includes("critical") ||
+            risk.includes("high")
         ) {
 
             return {
+                className: "danger",
 
-                className:
-                    "danger",
+                label: "HIGH RISK",
 
-                label:
-                    "HIGH RISK",
+                title:
+                    "Potential phishing threat detected",
+
+                description:
+                    normalized.message ||
+                    "The CyberGuard engine identified indicators associated with a potentially dangerous input."
+            };
+        }
+
+        if (
+            risk.includes("medium") ||
+            risk.includes("moderate")
+        ) {
+
+            return {
+                className: "warning",
+
+                label: "REVIEW",
+
+                title:
+                    "Further review recommended",
+
+                description:
+                    normalized.message ||
+                    "The analysis contains signals that should be reviewed before treating the input as safe."
+            };
+        }
+
+        if (
+            risk.includes("low") ||
+            risk.includes("safe")
+        ) {
+
+            return {
+                className: "safe",
+
+                label: "LOW RISK",
+
+                title:
+                    "No immediate threat detected",
+
+                description:
+                    normalized.message ||
+                    "The CyberGuard engine did not identify strong indicators of an immediate threat."
+            };
+        }
+    }
+
+
+    /*
+     * SECOND:
+     * Trust the model prediction.
+     */
+
+    if (
+        normalized.prediction
+    ) {
+
+        const prediction =
+            normalized.prediction
+                .toLowerCase();
+
+        if (
+            prediction.includes("phishing") ||
+            prediction.includes("malicious") ||
+            prediction.includes("spam") ||
+            prediction.includes("danger")
+        ) {
+
+            return {
+                className: "danger",
+
+                label: "HIGH RISK",
+
+                title:
+                    "Potential phishing threat detected",
+
+                description:
+                    normalized.message ||
+                    "The detection model classified this input as potentially malicious."
+            };
+        }
+
+        if (
+            prediction.includes("benign") ||
+            prediction.includes("safe") ||
+            prediction.includes("legitimate") ||
+            prediction.includes("ham")
+        ) {
+
+            return {
+                className: "safe",
+
+                label: "LOW RISK",
+
+                title:
+                    "No immediate threat detected",
+
+                description:
+                    normalized.message ||
+                    "The detection model classified this input as benign."
+            };
+        }
+    }
+
+
+    /*
+     * THIRD:
+     * Fall back to the existing confidence logic.
+     */
+
+    if (
+        normalized.confidence !== null
+    ) {
+
+        const confidence =
+            normalizeConfidence(
+                normalized.confidence
+            );
+
+        if (
+            confidence >= 0.75
+        ) {
+
+            return {
+                className: "danger",
+
+                label: "HIGH RISK",
 
                 title:
                     "High-confidence detection",
 
                 description:
-                    "The engine returned a high-confidence threat classification."
+                    "The detection engine returned a high-confidence threat classification."
             };
         }
 
-
         if (
-            normalizedConfidence >=
-            0.45
+            confidence >= 0.45
         ) {
 
             return {
+                className: "warning",
 
-                className:
-                    "warning",
-
-                label:
-                    "REVIEW",
+                label: "REVIEW",
 
                 title:
                     "Further review recommended",
@@ -2253,110 +655,63 @@ function determineRisk(
             };
         }
 
-
         return {
+            className: "safe",
 
-            className:
-                "safe",
-
-            label:
-                "LOW RISK",
+            label: "LOW RISK",
 
             title:
-                "Low-risk classification",
+                "No immediate threat detected",
 
             description:
-                "The engine returned a lower-risk classification for this input."
+                "The detection engine returned a lower-risk classification."
         };
     }
 
 
+    /*
+     * Final fallback
+     */
+
     return {
+        className: "warning",
 
-        className:
-            "warning",
-
-        label:
-            "REVIEW",
+        label: "REVIEW",
 
         title:
             "Analysis completed",
 
         description:
-            "The engine returned a result. Review the detection output below before making a decision."
+            normalized.message ||
+            "The engine returned a result. Review the available indicators before making a decision."
     };
 }
 
 
 /* ============================================================
-   NORMALIZE CONFIDENCE
-   ============================================================ */
-
-function normalizeConfidence(
-    value
-) {
-
-    let number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return 0;
-    }
-
-
-    if (
-        number > 1 &&
-        number <= 100
-    ) {
-
-        number /=
-            100;
-    }
-
-
-    return Math.max(
-        0,
-        Math.min(
-            1,
-            number
-        )
-    );
-}
-
-
-/* ============================================================
-   FORMAT CONFIDENCE
-   ============================================================ */
-
-function formatConfidence(
-    value
-) {
-
-    return (
-        normalizeConfidence(
-            value
-        ) * 100
-    ).toFixed(1) + "%";
-}
-
-
-/* ============================================================
-   BUILD INDICATORS
+   BUILD USER-FRIENDLY INDICATORS
    ============================================================ */
 
 function buildIndicators(
     normalized
 ) {
 
-    const indicators =
-        [];
+    const indicators = [];
 
+
+    /*
+     * Classification
+     */
 
     if (
+        normalized.prediction
+    ) {
+
+        indicators.push(
+            `Detection: ${normalized.prediction}`
+        );
+
+    } else if (
         normalized.label
     ) {
 
@@ -2366,8 +721,55 @@ function buildIndicators(
     }
 
 
+    /*
+     * Status
+     */
+
     if (
-        normalized.message
+        normalized.status
+    ) {
+
+        indicators.push(
+            `Status: ${normalized.status}`
+        );
+    }
+
+
+    /*
+     * Risk level
+     */
+
+    if (
+        normalized.riskLevel
+    ) {
+
+        indicators.push(
+            `Risk Level: ${normalized.riskLevel}`
+        );
+    }
+
+
+    /*
+     * Confidence
+     */
+
+    if (
+        normalized.confidence !== null
+    ) {
+
+        indicators.push(
+            `Detection Confidence: ${formatConfidence(normalized.confidence)}`
+        );
+    }
+
+
+    /*
+     * Explanation
+     */
+
+    if (
+        normalized.message &&
+        normalized.message !== normalized.status
     ) {
 
         indicators.push(
@@ -2376,1067 +778,71 @@ function buildIndicators(
     }
 
 
+    /*
+     * Detected indicators
+     */
+
     normalized.indicators.forEach(
         item => {
 
-            indicators.push(
-                item
-            );
+            if (
+                !item.startsWith("Recommendation:") &&
+                !item.startsWith("Risk Level:") &&
+                !item.startsWith("Status:")
+            ) {
+
+                indicators.push(
+                    item
+                );
+            }
         }
     );
 
 
+    /*
+     * Recommendation
+     */
+
     if (
-        indicators.length === 0
+        normalized.recommendation
     ) {
 
         indicators.push(
-            "The engine returned a result. Expand the raw response below for the complete output."
+            `Recommended action: ${normalized.recommendation}`
         );
     }
 
 
-    return [
-        ...new Set(
-            indicators
-        )
-    ].slice(
+    /*
+     * Remove duplicates
+     */
+
+    const unique =
+        [
+            ...new Set(
+                indicators
+                    .filter(Boolean)
+            )
+        ];
+
+
+    /*
+     * Don't dump 20 pieces of
+     * engine metadata into the UI.
+     */
+
+    if (
+        unique.length === 0
+    ) {
+
+        unique.push(
+            "No additional indicators were returned by the detection engine."
+        );
+    }
+
+
+    return unique.slice(
         0,
-        12
+        10
     );
 }
-
-
-/* ============================================================
-   RENDER ANALYSIS ERROR
-   ============================================================ */
-
-function renderAnalysisError(
-    type,
-    error
-) {
-
-    const empty =
-        $(`#${type}ResultEmpty`);
-
-    const content =
-        $(`#${type}ResultContent`);
-
-    if (empty) {
-
-        empty.classList.add(
-            "hidden"
-        );
-    }
-
-    if (content) {
-
-        content.classList.remove(
-            "hidden"
-        );
-    }
-
-
-    setResultState(
-        type,
-        "ERROR"
-    );
-
-
-    const indicator =
-        $(`#${type}RiskIndicator`);
-
-    const label =
-        $(`#${type}RiskLabel`);
-
-    const title =
-        $(`#${type}ThreatTitle`);
-
-    const description =
-        $(`#${type}ThreatDescription`);
-
-
-    if (indicator) {
-
-        indicator.className =
-            "risk-indicator danger";
-    }
-
-
-    if (label) {
-
-        label.textContent =
-            "ERROR";
-    }
-
-
-    if (title) {
-
-        title.textContent =
-            "Analysis could not be completed";
-    }
-
-
-    if (description) {
-
-        description.textContent =
-            getErrorMessage(error);
-    }
-
-
-    const indicators =
-        $(`#${type}Indicators`);
-
-    if (indicators) {
-
-        indicators.innerHTML = "";
-
-        const element =
-            document.createElement(
-                "div"
-            );
-
-        element.className =
-            "indicator";
-
-        element.textContent =
-            "Check that the Hugging Face Space is running and that the endpoint is available.";
-
-        indicators.appendChild(
-            element
-        );
-    }
-
-
-    const raw =
-        $(`#${type}Raw`);
-
-    if (raw) {
-
-        raw.textContent =
-            error?.stack ||
-            String(error);
-    }
-}
-
-
-/* ============================================================
-   RESET RESULT
-   ============================================================ */
-
-function resetResult(
-    type
-) {
-
-    const empty =
-        $(`#${type}ResultEmpty`);
-
-    const content =
-        $(`#${type}ResultContent`);
-
-    if (empty) {
-
-        empty.classList.remove(
-            "hidden"
-        );
-    }
-
-    if (content) {
-
-        content.classList.add(
-            "hidden"
-        );
-    }
-
-
-    setResultState(
-        type,
-        "WAITING"
-    );
-}
-
-
-/* ============================================================
-   RAW TOGGLES
-   ============================================================ */
-
-function initializeRawToggles() {
-
-    $$(".raw-toggle").forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const target =
-                        $(
-                            `#${button.dataset.target}`
-                        );
-
-                    if (!target) {
-                        return;
-                    }
-
-                    target.classList.toggle(
-                        "hidden"
-                    );
-
-
-                    const plus =
-                        button.querySelector(
-                            "span"
-                        );
-
-                    if (plus) {
-
-                        plus.textContent =
-                            target.classList.contains(
-                                "hidden"
-                            )
-                                ? "+"
-                                : "−";
-                    }
-                }
-            );
-        }
-    );
-}
-
-
-/* ============================================================
-   LOADING
-   ============================================================ */
-
-function showLoading(
-    title,
-    description
-) {
-
-    const overlay =
-        $("#loadingOverlay");
-
-    $("#loadingTitle").textContent =
-        title;
-
-    $("#loadingDescription").textContent =
-        description;
-
-    overlay.classList.remove(
-        "hidden"
-    );
-}
-
-
-function hideLoading() {
-
-    $("#loadingOverlay")
-        .classList.add(
-            "hidden"
-        );
-}
-
-
-/* ============================================================
-   TOAST
-   ============================================================ */
-
-let toastTimer =
-    null;
-
-
-function showToast(
-    title,
-    message,
-    type = "success"
-) {
-
-    const toast =
-        $("#toast");
-
-    const icon =
-        $("#toastIcon");
-
-
-    $("#toastTitle").textContent =
-        title;
-
-    $("#toastMessage").textContent =
-        message;
-
-
-    if (
-        type === "error"
-    ) {
-
-        icon.textContent =
-            "!";
-
-        icon.style.color =
-            "var(--red)";
-
-        icon.style.background =
-            "rgba(239, 68, 68, 0.08)";
-
-    } else {
-
-        icon.textContent =
-            "✓";
-
-        icon.style.color =
-            "var(--green)";
-
-        icon.style.background =
-            "rgba(34, 197, 94, 0.08)";
-    }
-
-
-    toast.classList.add(
-        "show"
-    );
-
-
-    clearTimeout(
-        toastTimer
-    );
-
-
-    toastTimer =
-        setTimeout(
-            () => {
-
-                toast.classList.remove(
-                    "show"
-                );
-
-            },
-            4500
-        );
-}
-
-
-$("#toastClose")
-    ?.addEventListener(
-        "click",
-        () => {
-
-            $("#toast")
-                .classList.remove(
-                    "show"
-                );
-        }
-    );
-
-
-/* ============================================================
-   HISTORY
-   ============================================================ */
-
-function loadHistory() {
-
-    try {
-
-        const saved =
-            localStorage.getItem(
-                CONFIG.HISTORY_KEY
-            );
-
-        if (saved) {
-
-            state.history =
-                JSON.parse(
-                    saved
-                );
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "[CyberGuard] Could not load history:",
-            error
-        );
-
-        state.history =
-            [];
-    }
-
-
-    renderHistory();
-}
-
-
-function saveHistory() {
-
-    try {
-
-        localStorage.setItem(
-            CONFIG.HISTORY_KEY,
-            JSON.stringify(
-                state.history
-            )
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "[CyberGuard] Could not save history:",
-            error
-        );
-    }
-}
-
-
-function addHistoryEntry(
-    entry
-) {
-
-    const historyEntry = {
-
-        id:
-            Date.now(),
-
-        type:
-            entry.type ||
-            "Analysis",
-
-        input:
-            entry.input ||
-            "",
-
-        result:
-            entry.result ||
-            "",
-
-        timestamp:
-            new Date().toISOString()
-    };
-
-
-    state.history.unshift(
-        historyEntry
-    );
-
-
-    state.history =
-        state.history.slice(
-            0,
-            30
-        );
-
-
-    saveHistory();
-
-    renderHistory();
-}
-
-
-function renderHistory() {
-
-    const container =
-        $("#historyList");
-
-    if (!container) {
-        return;
-    }
-
-
-    if (
-        state.history.length === 0
-    ) {
-
-        container.innerHTML = `
-
-            <div class="history-empty">
-
-                <div>◷</div>
-
-                <h4>
-                    No analysis history
-                </h4>
-
-                <p>
-                    Completed analyses will appear here.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        state.history
-            .map(
-                entry => {
-
-                    const icon =
-                        getHistoryIcon(
-                            entry.type
-                        );
-
-                    const time =
-                        formatDate(
-                            entry.timestamp
-                        );
-
-
-                    return `
-
-                        <div class="history-item">
-
-                            <div class="history-type">
-                                ${icon}
-                            </div>
-
-                            <div class="history-main">
-
-                                <strong>
-                                    ${escapeHtml(
-                                        entry.type
-                                    )}
-                                </strong>
-
-                                <p>
-                                    ${escapeHtml(
-                                        truncate(
-                                            entry.input,
-                                            100
-                                        )
-                                    )}
-                                </p>
-
-                            </div>
-
-                            <div class="history-time">
-                                ${escapeHtml(time)}
-                            </div>
-
-                        </div>
-
-                    `;
-                }
-            )
-            .join("");
-}
-
-
-function getHistoryIcon(
-    type
-) {
-
-    const icons = {
-
-        Message:
-            "✉",
-
-        URL:
-            "↗",
-
-        Website:
-            "◫",
-
-        "QR Code":
-            "▦"
-    };
-
-
-    return (
-        icons[type] ||
-        "⌁"
-    );
-}
-
-
-function formatDate(
-    timestamp
-) {
-
-    try {
-
-        return new Date(
-            timestamp
-        ).toLocaleString(
-            [],
-            {
-                day: "2-digit",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
-
-    } catch {
-
-        return "Unknown";
-    }
-}
-
-
-/* ============================================================
-   CLEAR HISTORY
-   ============================================================ */
-
-const clearHistoryButton =
-    $("#clearHistoryButton");
-
-if (clearHistoryButton) {
-
-    clearHistoryButton.addEventListener(
-        "click",
-        () => {
-
-            if (
-                state.history.length === 0
-            ) {
-
-                showToast(
-                    "Nothing to clear",
-                    "There is no analysis history.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            state.history =
-                [];
-
-            saveHistory();
-
-            renderHistory();
-
-
-            showToast(
-                "History cleared",
-                "Analysis history has been removed from this browser.",
-                "success"
-            );
-        }
-    );
-}
-
-
-/* ============================================================
-   ORGANISATION SETTINGS
-   ============================================================ */
-
-function initializeOrganisationSettings() {
-
-    const saveButton =
-        $("#saveOrganisationButton");
-
-    const input =
-        $("#organisationInput");
-
-
-    if (
-        !saveButton ||
-        !input
-    ) {
-
-        return;
-    }
-
-
-    input.value =
-        state.organisation;
-
-
-    saveButton.addEventListener(
-        "click",
-        () => {
-
-            const value =
-                input.value.trim();
-
-
-            if (!value) {
-
-                showToast(
-                    "Organisation name required",
-                    "Enter an organisation name first.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            state.organisation =
-                value;
-
-
-            try {
-
-                localStorage.setItem(
-                    CONFIG.ORGANISATION_KEY,
-                    value
-                );
-
-            } catch (error) {
-
-                console.warn(
-                    "[CyberGuard] Organisation could not be saved:",
-                    error
-                );
-            }
-
-
-            updateOrganisationUI();
-
-
-            showToast(
-                "Organisation updated",
-                "CyberGuard interface context has been updated.",
-                "success"
-            );
-        }
-    );
-}
-
-
-function loadOrganisation() {
-
-    try {
-
-        const saved =
-            localStorage.getItem(
-                CONFIG.ORGANISATION_KEY
-            );
-
-        if (
-            saved &&
-            saved.trim()
-        ) {
-
-            state.organisation =
-                saved.trim();
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "[CyberGuard] Could not load organisation:",
-            error
-        );
-    }
-}
-
-
-function updateOrganisationUI() {
-
-    const topName =
-        $("#topOrganisationName");
-
-    const displayName =
-        $("#organisationDisplayName");
-
-    const input =
-        $("#organisationInput");
-
-
-    if (topName) {
-
-        topName.textContent =
-            state.organisation;
-    }
-
-
-    if (displayName) {
-
-        displayName.textContent =
-            state.organisation;
-    }
-
-
-    if (
-        input &&
-        document.activeElement !== input
-    ) {
-
-        input.value =
-            state.organisation;
-    }
-}
-
-
-/* ============================================================
-   UTILITY FUNCTIONS
-   ============================================================ */
-
-function safePrettyPrint(
-    value
-) {
-
-    try {
-
-        return JSON.stringify(
-            value,
-            null,
-            2
-        );
-
-    } catch {
-
-        return String(value);
-    }
-}
-
-
-function summarizeResult(
-    value
-) {
-
-    const normalized =
-        normalizeResult(
-            value
-        );
-
-
-    if (
-        normalized.label
-    ) {
-
-        return normalized.label;
-    }
-
-
-    if (
-        normalized.message
-    ) {
-
-        return truncate(
-            normalized.message,
-            100
-        );
-    }
-
-
-    return "Analysis completed";
-}
-
-
-function truncate(
-    value,
-    length
-) {
-
-    const string =
-        String(
-            value ||
-            ""
-        );
-
-
-    if (
-        string.length <=
-        length
-    ) {
-
-        return string;
-    }
-
-
-    return (
-        string.slice(
-            0,
-            length - 1
-        ) +
-        "…"
-    );
-}
-
-
-function formatFileSize(
-    bytes
-) {
-
-    if (
-        bytes <
-        1024
-    ) {
-
-        return `${bytes} B`;
-    }
-
-
-    if (
-        bytes <
-        1024 * 1024
-    ) {
-
-        return `${(
-            bytes /
-            1024
-        ).toFixed(1)} KB`;
-    }
-
-
-    return `${(
-        bytes /
-        (1024 * 1024)
-    ).toFixed(1)} MB`;
-}
-
-
-function escapeHtml(
-    value
-) {
-
-    return String(
-        value ||
-        ""
-    )
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-}
-
-
-/* ============================================================
-   ERROR MESSAGE
-   ============================================================ */
-
-function getErrorMessage(
-    error
-) {
-
-    if (
-        error &&
-        typeof error.message ===
-        "string"
-    ) {
-
-        return error.message;
-    }
-
-
-    return (
-        "The detection engine returned an unexpected error."
-    );
-}
-
-
-/* ============================================================
-   MESSAGE TYPE DISPLAY
-   ============================================================ */
-
-const messageType =
-    $("#messageType");
-
-if (messageType) {
-
-    messageType.addEventListener(
-        "change",
-        () => {
-
-            const textarea =
-                $("#messageInput");
-
-            if (!textarea) {
-                return;
-            }
-
-
-            const type =
-                messageType.value;
-
-
-            const placeholders = {
-
-                "Email":
-                    "Paste the suspicious email content here...",
-
-                "SMS / Message":
-                    "Paste the suspicious SMS or message here...",
-
-                "Social Media":
-                    "Paste the suspicious social-media message here..."
-            };
-
-
-            textarea.placeholder =
-                placeholders[type] ||
-                "Paste suspicious content here...";
-        }
-    );
-}
-
-
-/* ============================================================
-   KEYBOARD SHORTCUT
-   ============================================================ */
-
-document.addEventListener(
-    "keydown",
-    event => {
-
-        /*
-         * Ctrl + K focuses the main phishing input.
-         */
-
-        if (
-            event.ctrlKey &&
-            event.key.toLowerCase() === "k"
-        ) {
-
-            event.preventDefault();
-
-            navigateTo("phishing");
-
-            activateAnalysis("message");
-
-            $("#messageInput")
-                ?.focus();
-        }
-    }
-);
-
-
-/* ============================================================
-   DEVELOPMENT LOG
-   ============================================================ */
-
-console.log(
-    "%cCYBERGUARD",
-    "font-size:20px;font-weight:800;color:#60a5fa;"
-);
-
-console.log(
-    "%cOrganisation Security Platform",
-    "font-size:11px;color:#94a3b8;"
-);
-
-console.log(
-    "[CyberGuard] Frontend initialized."
-);
-
-console.log(
-    "[CyberGuard] Hugging Face Space:",
-    CONFIG.HF_SPACE
-);
-
-console.log(
-    "[CyberGuard] Endpoints:",
-    CONFIG.ENDPOINTS
-);
