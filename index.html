@@ -4,718 +4,1986 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>CyberGuard – Organisation Security</title>
+    <title>CyberGuard — Organisation Security</title>
 
     <meta
         name="description"
-        content="CyberGuard is an organisation-specific cybersecurity platform for detecting phishing messages, suspicious websites and malicious QR codes."
+        content="CyberGuard organisation security platform for phishing, account takeover and digital impersonation detection."
+    >
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
     >
 
     <link rel="stylesheet" href="style.css">
+
+    <!-- Gradio JavaScript Client -->
+    <script
+        type="module"
+        src="https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"
+    ></script>
 </head>
 
 <body>
 
-    <!-- ================= NAVBAR ================= -->
-    <header class="navbar">
-        <div class="nav-container">
+    <!-- =========================================================
+         APP SHELL
+    ========================================================== -->
 
-            <a href="#home" class="brand">
-                <span class="brand-name">CYBERGUARD</span>
-                <span class="brand-subtitle">ORGANISATION SECURITY</span>
-            </a>
+    <div class="app-shell">
 
-            <nav class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How it works</a>
-                <a href="#detection">Detection</a>
-            </nav>
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
 
-            <a href="#scanner" class="nav-button">
-                Open Scanner <span>→</span>
-            </a>
+        <aside class="sidebar" id="sidebar">
 
-        </div>
-    </header>
+            <div class="brand">
 
-
-    <!-- ================= HERO ================= -->
-    <main>
-
-        <section class="hero" id="home">
-
-            <div class="hero-left">
-
-                <div class="eyebrow">
-                    ORGANISATION-SPECIFIC CYBERSECURITY
+                <div class="brand-mark">
+                    <span class="brand-shield">◆</span>
                 </div>
 
-                <h1>
-                    Protect your
-                    <span>organisation</span>
-                    from digital
-                    threats.
-                </h1>
-
-                <p class="hero-description">
-                    CyberGuard analyses suspicious messages, websites,
-                    URLs and QR codes to identify phishing and other
-                    organisation-targeted cyber threats.
-                </p>
-
-                <div class="hero-actions">
-                    <a href="#scanner" class="primary-button">
-                        Start Detection <span>→</span>
-                    </a>
-
-                    <a href="#how-it-works" class="text-button">
-                        How it works
-                    </a>
+                <div class="brand-text">
+                    <h1>CYBER<span>GUARD</span></h1>
+                    <p>Organisation Security</p>
                 </div>
 
             </div>
 
+            <div class="sidebar-section">
 
-            <div class="hero-right">
-
-                <div class="system-label">
-                    CYBERGUARD SYSTEM ACTIVE
-                </div>
-
-                <div class="system-title">
-                    ORGANISATION THREAT MONITOR
-                </div>
-
-                <p>
-                    Analyse suspicious activity
-                </p>
-
-                <p>
-                    Detect phishing indicators before they become
-                    an organisational security incident.
-                </p>
-
-                <div class="hero-list">
-                    <div><span>01</span> Messages</div>
-                    <div><span>02</span> Websites</div>
-                    <div><span>03</span> QR Codes</div>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= FEATURES ================= -->
-        <section class="section" id="features">
-
-            <div class="section-heading">
-
-                <div class="section-number">
-                    01 / CAPABILITIES
-                </div>
-
-                <h2>
-                    Built for organisational
-                    <span>threat detection.</span>
-                </h2>
-
-                <p>
-                    CyberGuard focuses on digital attack surfaces commonly
-                    used to target employees, accounts and organisational
-                    systems.
-                </p>
-
-            </div>
-
-
-            <div class="feature-grid">
-
-                <article class="feature-card">
-
-                    <div class="card-number">01</div>
-
-                    <h3>Message Detection</h3>
-
-                    <p>
-                        Analyse suspicious emails, SMS messages,
-                        social-media messages and other text-based
-                        phishing attempts.
-                    </p>
-
-                    <div class="card-tags">
-                        <span>EMAIL</span>
-                        <span>SMS</span>
-                        <span>SOCIAL</span>
-                    </div>
-
-                </article>
-
-
-                <article class="feature-card">
-
-                    <div class="card-number">02</div>
-
-                    <h3>Website Intelligence</h3>
-
-                    <p>
-                        Examine suspicious URLs and websites for
-                        indicators associated with phishing and
-                        deceptive web activity.
-                    </p>
-
-                    <div class="card-tags">
-                        <span>URL</span>
-                        <span>DOMAIN</span>
-                        <span>WEBSITE</span>
-                    </div>
-
-                </article>
-
-
-                <article class="feature-card">
-
-                    <div class="card-number">03</div>
-
-                    <h3>QR Threat Analysis</h3>
-
-                    <p>
-                        Upload a QR code and analyse its decoded
-                        destination or content for potential phishing
-                        indicators.
-                    </p>
-
-                    <div class="card-tags">
-                        <span>QR</span>
-                        <span>LINK</span>
-                        <span>CONTENT</span>
-                    </div>
-
-                </article>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= HOW IT WORKS ================= -->
-        <section class="section process-section" id="how-it-works">
-
-            <div class="section-heading">
-
-                <div class="section-number">
-                    02 / PROCESS
-                </div>
-
-                <h2>
-                    From suspicious input
-                    <span>to threat report.</span>
-                </h2>
-
-            </div>
-
-
-            <div class="process-grid">
-
-                <div class="process-item">
-                    <span>01</span>
-                    <h3>Submit</h3>
-                    <p>
-                        Provide a suspicious message, website URL
-                        or QR-code image.
-                    </p>
-                </div>
-
-                <div class="process-line"></div>
-
-                <div class="process-item">
-                    <span>02</span>
-                    <h3>Analyse</h3>
-                    <p>
-                        CyberGuard sends the input to the deployed
-                        detection engine.
-                    </p>
-                </div>
-
-                <div class="process-line"></div>
-
-                <div class="process-item">
-                    <span>03</span>
-                    <h3>Report</h3>
-                    <p>
-                        Review the returned prediction, indicators,
-                        risk information and recommendation.
-                    </p>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= DETECTION ================= -->
-        <section class="section detection-section" id="detection">
-
-            <div class="section-heading">
-
-                <div class="section-number">
-                    03 / DETECTION
-                </div>
-
-                <h2>
-                    What CyberGuard
-                    <span>looks for.</span>
-                </h2>
-
-            </div>
-
-
-            <div class="detection-grid">
-
-                <div class="detection-item">
-                    <strong>01</strong>
-                    <div>
-                        <h3>Phishing Indicators</h3>
-                        <p>
-                            Suspicious language, deceptive requests,
-                            malicious links and phishing patterns.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="detection-item">
-                    <strong>02</strong>
-                    <div>
-                        <h3>Suspicious URLs</h3>
-                        <p>
-                            URL and website characteristics associated
-                            with potentially deceptive destinations.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="detection-item">
-                    <strong>03</strong>
-                    <div>
-                        <h3>QR Destinations</h3>
-                        <p>
-                            QR-code content and decoded destinations
-                            can be analysed for suspicious activity.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="detection-item">
-                    <strong>04</strong>
-                    <div>
-                        <h3>Organisation Risk</h3>
-                        <p>
-                            Results are presented in the context of
-                            protecting an organisation's digital surface.
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= SCANNER ================= -->
-        <section class="scanner-section" id="scanner">
-
-            <div class="scanner-header">
-
-                <div>
-                    <div class="section-number">
-                        04 / LIVE SCANNER
-                    </div>
-
-                    <h2>
-                        Analyse suspicious
-                        <span>activity.</span>
-                    </h2>
-
-                    <p>
-                        Select an input type and submit it to the
-                        CyberGuard detection engine.
-                    </p>
-                </div>
-
-                <div class="scanner-status">
-                    <span class="status-dot"></span>
-                    DETECTION ENGINE ONLINE
-                </div>
-
-            </div>
-
-
-            <!-- Scanner Tabs -->
-            <div class="scanner-tabs">
+                <p class="sidebar-label">WORKSPACE</p>
 
                 <button
-                    class="scanner-tab active"
-                    data-tab="message"
+                    class="nav-item active"
+                    data-view="overview"
                 >
-                    Message
+                    <span class="nav-icon">⌂</span>
+                    <span>Security Overview</span>
                 </button>
 
                 <button
-                    class="scanner-tab"
-                    data-tab="website"
+                    class="nav-item"
+                    data-view="phishing"
                 >
-                    Website / URL
+                    <span class="nav-icon">⌁</span>
+                    <span>Phishing Detection</span>
+                    <span class="nav-status live"></span>
                 </button>
 
                 <button
-                    class="scanner-tab"
-                    data-tab="qr"
+                    class="nav-item"
+                    data-view="takeover"
                 >
-                    QR Code
+                    <span class="nav-icon">◉</span>
+                    <span>Account Takeover</span>
+                    <span class="nav-status upcoming"></span>
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-view="impersonation"
+                >
+                    <span class="nav-icon">◌</span>
+                    <span>Digital Impersonation</span>
+                    <span class="nav-status upcoming"></span>
                 </button>
 
             </div>
 
+            <div class="sidebar-section">
 
-            <!-- MESSAGE PANEL -->
-            <div class="scanner-panel active" id="message-panel">
+                <p class="sidebar-label">TOOLS</p>
 
-                <div class="input-header">
-                    <div>
-                        <span class="input-label">
-                            MESSAGE ANALYSIS
-                        </span>
+                <button
+                    class="nav-item"
+                    data-view="activity"
+                >
+                    <span class="nav-icon">◷</span>
+                    <span>Analysis History</span>
+                </button>
 
-                        <span class="input-description">
-                            Email, SMS, social-media message or suspicious text
-                        </span>
+                <button
+                    class="nav-item"
+                    data-view="organisation"
+                >
+                    <span class="nav-icon">⚙</span>
+                    <span>Organisation</span>
+                </button>
+
+            </div>
+
+            <div class="sidebar-bottom">
+
+                <div class="system-card">
+
+                    <div class="system-card-top">
+
+                        <span class="system-dot"></span>
+
+                        <span>Detection Engine</span>
+
                     </div>
+
+                    <strong>ONLINE</strong>
+
+                    <p>
+                        CyberGuard analysis services are available.
+                    </p>
+
                 </div>
 
-                <textarea
-                    id="message-input"
-                    class="scanner-textarea"
-                    placeholder="Paste the suspicious message here..."
-                ></textarea>
-
-                <div class="scanner-actions">
-
-                    <button
-                        class="analyze-button"
-                        id="analyze-message-btn"
-                    >
-                        Analyze Message →
-                    </button>
-
-                    <button
-                        class="clear-button"
-                        data-clear="message-input"
-                    >
-                        Clear
-                    </button>
-
+                <div class="sidebar-version">
+                    CYBERGUARD v1.0
                 </div>
 
             </div>
 
+        </aside>
 
-            <!-- WEBSITE PANEL -->
-            <div class="scanner-panel" id="website-panel">
 
-                <div class="input-header">
-                    <div>
-                        <span class="input-label">
-                            WEBSITE / URL ANALYSIS
-                        </span>
+        <!-- =====================================================
+             MAIN AREA
+        ====================================================== -->
 
-                        <span class="input-description">
-                            Analyse a suspicious website or URL
-                        </span>
-                    </div>
-                </div>
+        <main class="main">
 
-                <input
-                    type="url"
-                    id="website-input"
-                    class="scanner-input"
-                    placeholder="https://example.com"
+            <!-- =================================================
+                 TOPBAR
+            ================================================== -->
+
+            <header class="topbar">
+
+                <button
+                    class="mobile-menu"
+                    id="mobileMenu"
+                    aria-label="Open navigation"
                 >
+                    ☰
+                </button>
 
-                <div class="scanner-actions">
+                <div class="breadcrumb">
 
-                    <button
-                        class="analyze-button"
-                        id="analyze-website-btn"
-                    >
-                        Analyze Website →
-                    </button>
+                    <span>CyberGuard</span>
 
-                    <button
-                        class="clear-button"
-                        data-clear="website-input"
-                    >
-                        Clear
-                    </button>
+                    <span class="breadcrumb-separator">/</span>
 
-                </div>
-
-            </div>
-
-
-            <!-- QR PANEL -->
-            <div class="scanner-panel" id="qr-panel">
-
-                <div class="input-header">
-                    <div>
-                        <span class="input-label">
-                            QR CODE ANALYSIS
-                        </span>
-
-                        <span class="input-description">
-                            Upload a QR-code image for analysis
-                        </span>
-                    </div>
-                </div>
-
-
-                <label
-                    class="upload-area"
-                    for="qr-input"
-                    id="upload-area"
-                >
-
-                    <div class="upload-icon">
-                        +
-                    </div>
-
-                    <strong>
-                        Upload QR Code
+                    <strong id="breadcrumbCurrent">
+                        Security Overview
                     </strong>
 
-                    <span>
-                        PNG, JPG, JPEG or other supported image
-                    </span>
+                </div>
 
-                    <input
-                        type="file"
-                        id="qr-input"
-                        accept="image/*"
-                        hidden
-                    >
+                <div class="topbar-right">
 
-                </label>
+                    <div class="connection-status">
 
+                        <span class="connection-dot"></span>
 
-                <div
-                    class="file-selected"
-                    id="file-selected"
-                ></div>
+                        <span>Engine Connected</span>
 
+                    </div>
 
-                <div class="scanner-actions">
+                    <div class="organisation-chip">
 
-                    <button
-                        class="analyze-button"
-                        id="analyze-qr-btn"
-                        disabled
-                    >
-                        Analyze QR Code →
-                    </button>
+                        <span class="organisation-chip-icon">O</span>
 
-                    <button
-                        class="clear-button"
-                        id="clear-qr-btn"
-                    >
-                        Clear
-                    </button>
+                        <span id="topOrganisationName">
+                            Your Organisation
+                        </span>
+
+                    </div>
 
                 </div>
 
-            </div>
+            </header>
 
 
-            <!-- ================= REPORT ================= -->
-            <div class="report-card" id="report-card">
+            <!-- =================================================
+                 CONTENT
+            ================================================== -->
 
-                <div class="report-header">
+            <div class="content">
 
-                    <div>
-                        <span class="report-label">
-                            CYBERGUARD THREAT REPORT
-                        </span>
+                <!-- =============================================
+                     OVERVIEW
+                ============================================== -->
 
-                        <span
-                            class="report-type"
-                            id="report-type"
+                <section
+                    class="view active"
+                    id="view-overview"
+                >
+
+                    <div class="page-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                ORGANISATION SECURITY
+                            </div>
+
+                            <h2>
+                                Security Overview
+                            </h2>
+
+                            <p>
+                                Monitor threats, analyse suspicious
+                                activity and protect your organisation's
+                                digital environment.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="primary-button"
+                            id="openPhishingButton"
                         >
-                            WAITING
+                            <span>+</span>
+                            New Analysis
+                        </button>
+
+                    </div>
+
+
+                    <!-- Security Summary -->
+
+                    <div class="summary-grid">
+
+                        <div class="summary-card">
+
+                            <div class="summary-icon blue">
+                                ⌁
+                            </div>
+
+                            <div class="summary-info">
+
+                                <span class="summary-label">
+                                    PHISHING DETECTION
+                                </span>
+
+                                <strong>ACTIVE</strong>
+
+                                <small>
+                                    Message, URL & QR analysis
+                                </small>
+
+                            </div>
+
+                            <span class="summary-badge active-badge">
+                                LIVE
+                            </span>
+
+                        </div>
+
+
+                        <div class="summary-card">
+
+                            <div class="summary-icon purple">
+                                ◉
+                            </div>
+
+                            <div class="summary-info">
+
+                                <span class="summary-label">
+                                    ACCOUNT TAKEOVER
+                                </span>
+
+                                <strong>IN DEVELOPMENT</strong>
+
+                                <small>
+                                    Behavioural detection engine
+                                </small>
+
+                            </div>
+
+                            <span class="summary-badge soon-badge">
+                                SOON
+                            </span>
+
+                        </div>
+
+
+                        <div class="summary-card">
+
+                            <div class="summary-icon orange">
+                                ◌
+                            </div>
+
+                            <div class="summary-info">
+
+                                <span class="summary-label">
+                                    DIGITAL IMPERSONATION
+                                </span>
+
+                                <strong>IN DEVELOPMENT</strong>
+
+                                <small>
+                                    Identity & impersonation analysis
+                                </small>
+
+                            </div>
+
+                            <span class="summary-badge soon-badge">
+                                SOON
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Main Overview Grid -->
+
+                    <div class="overview-grid">
+
+                        <div class="panel threat-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        THREAT MONITOR
+                                    </span>
+
+                                    <h3>
+                                        Organisation Protection
+                                    </h3>
+
+                                </div>
+
+                                <span class="panel-live">
+                                    ● LIVE
+                                </span>
+
+                            </div>
+
+                            <div class="protection-visual">
+
+                                <div class="protection-ring">
+
+                                    <div class="ring-inner">
+
+                                        <span>READY</span>
+
+                                        <strong>01</strong>
+
+                                        <small>
+                                            active engine
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="protection-copy">
+
+                                    <h4>
+                                        Phishing analysis is ready.
+                                    </h4>
+
+                                    <p>
+                                        Scan suspicious messages,
+                                        deceptive URLs, websites and
+                                        QR codes using the connected
+                                        CyberGuard detection engine.
+                                    </p>
+
+                                    <button
+                                        class="text-button"
+                                        data-view-target="phishing"
+                                    >
+                                        Open phishing scanner →
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="panel architecture-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        SECURITY LAYERS
+                                    </span>
+
+                                    <h3>
+                                        Detection Architecture
+                                    </h3>
+
+                                </div>
+
+                            </div>
+
+                            <div class="architecture-list">
+
+                                <div class="architecture-item">
+
+                                    <div class="architecture-number">
+                                        01
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+                                            Phishing Detection
+                                        </strong>
+
+                                        <p>
+                                            Messages, URLs, websites
+                                            and QR codes.
+                                        </p>
+
+                                    </div>
+
+                                    <span class="architecture-state live">
+                                        LIVE
+                                    </span>
+
+                                </div>
+
+
+                                <div class="architecture-item">
+
+                                    <div class="architecture-number">
+                                        02
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+                                            Account Takeover
+                                        </strong>
+
+                                        <p>
+                                            Login and session
+                                            behaviour analysis.
+                                        </p>
+
+                                    </div>
+
+                                    <span class="architecture-state">
+                                        SOON
+                                    </span>
+
+                                </div>
+
+
+                                <div class="architecture-item">
+
+                                    <div class="architecture-number">
+                                        03
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+                                            Digital Impersonation
+                                        </strong>
+
+                                        <p>
+                                            Suspicious identity and
+                                            impersonation attempts.
+                                        </p>
+
+                                    </div>
+
+                                    <span class="architecture-state">
+                                        SOON
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Quick Analysis -->
+
+                    <div class="panel quick-panel">
+
+                        <div class="panel-header">
+
+                            <div>
+
+                                <span class="panel-kicker">
+                                    QUICK ACTION
+                                </span>
+
+                                <h3>
+                                    Start a Security Analysis
+                                </h3>
+
+                            </div>
+
+                        </div>
+
+                        <div class="quick-actions">
+
+                            <button
+                                class="quick-action"
+                                data-analysis="message"
+                            >
+
+                                <span class="quick-action-icon">
+                                    ✉
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        Scan a Message
+                                    </strong>
+
+                                    <small>
+                                        Email, SMS or social message
+                                    </small>
+                                </span>
+
+                                <span class="arrow">→</span>
+
+                            </button>
+
+
+                            <button
+                                class="quick-action"
+                                data-analysis="url"
+                            >
+
+                                <span class="quick-action-icon">
+                                    ↗
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        Analyse a URL
+                                    </strong>
+
+                                    <small>
+                                        Check a suspicious link
+                                    </small>
+                                </span>
+
+                                <span class="arrow">→</span>
+
+                            </button>
+
+
+                            <button
+                                class="quick-action"
+                                data-analysis="qr"
+                            >
+
+                                <span class="quick-action-icon">
+                                    ▦
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        Scan a QR Code
+                                    </strong>
+
+                                    <small>
+                                        Detect QR-based phishing
+                                    </small>
+                                </span>
+
+                                <span class="arrow">→</span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =============================================
+                     PHISHING
+                ============================================== -->
+
+                <section
+                    class="view"
+                    id="view-phishing"
+                >
+
+                    <div class="page-heading phishing-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                THREAT DETECTION / 01
+                            </div>
+
+                            <h2>
+                                Phishing Detection
+                            </h2>
+
+                            <p>
+                                Analyse suspicious communication,
+                                URLs, websites and QR codes for
+                                phishing indicators.
+                            </p>
+
+                        </div>
+
+                        <div class="engine-pill">
+
+                            <span></span>
+
+                            BERT PHISHING ENGINE
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Input Selector -->
+
+                    <div class="analysis-tabs">
+
+                        <button
+                            class="analysis-tab active"
+                            data-analysis="message"
+                        >
+
+                            <span class="tab-icon">✉</span>
+
+                            <span>
+                                <strong>Message</strong>
+                                <small>
+                                    Email / SMS / Social
+                                </small>
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            class="analysis-tab"
+                            data-analysis="url"
+                        >
+
+                            <span class="tab-icon">↗</span>
+
+                            <span>
+                                <strong>URL / Website</strong>
+                                <small>
+                                    Link & website analysis
+                                </small>
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            class="analysis-tab"
+                            data-analysis="qr"
+                        >
+
+                            <span class="tab-icon">▦</span>
+
+                            <span>
+                                <strong>QR Code</strong>
+                                <small>
+                                    QR phishing analysis
+                                </small>
+                            </span>
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- Message Analysis -->
+
+                    <div
+                        class="analysis-layout analysis-panel active"
+                        id="analysis-message"
+                    >
+
+                        <div class="panel input-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        MESSAGE ANALYSIS
+                                    </span>
+
+                                    <h3>
+                                        Inspect a suspicious message
+                                    </h3>
+
+                                </div>
+
+                                <span class="input-counter">
+                                    <span id="messageCount">0</span>
+                                    chars
+                                </span>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    MESSAGE TYPE
+                                </label>
+
+                                <select id="messageType">
+
+                                    <option value="Email">
+                                        Email
+                                    </option>
+
+                                    <option value="SMS / Message">
+                                        SMS / Message
+                                    </option>
+
+                                    <option value="Social Media">
+                                        Social Media
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <div class="field-label-row">
+
+                                    <label for="messageInput">
+                                        SUSPICIOUS CONTENT
+                                    </label>
+
+                                    <button
+                                        class="clear-button"
+                                        id="clearMessage"
+                                        type="button"
+                                    >
+                                        Clear
+                                    </button>
+
+                                </div>
+
+                                <textarea
+                                    id="messageInput"
+                                    placeholder="Paste the suspicious email, SMS, social-media message or other text here..."
+                                    spellcheck="false"
+                                ></textarea>
+
+                            </div>
+
+
+                            <div class="input-hints">
+
+                                <span>
+                                    ✓ Urgency
+                                </span>
+
+                                <span>
+                                    ✓ Credential requests
+                                </span>
+
+                                <span>
+                                    ✓ Suspicious links
+                                </span>
+
+                                <span>
+                                    ✓ Impersonation patterns
+                                </span>
+
+                            </div>
+
+
+                            <button
+                                class="scan-button"
+                                id="scanMessageButton"
+                                type="button"
+                            >
+
+                                <span class="scan-button-icon">
+                                    ⌁
+                                </span>
+
+                                <span>
+                                    Analyse Message
+                                </span>
+
+                                <span class="scan-arrow">
+                                    →
+                                </span>
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="panel result-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        ANALYSIS RESULT
+                                    </span>
+
+                                    <h3>
+                                        Threat Assessment
+                                    </h3>
+
+                                </div>
+
+                                <span
+                                    class="result-state"
+                                    id="messageResultState"
+                                >
+                                    WAITING
+                                </span>
+
+                            </div>
+
+                            <div
+                                class="result-empty"
+                                id="messageResultEmpty"
+                            >
+
+                                <div class="empty-icon">
+                                    ◇
+                                </div>
+
+                                <h4>
+                                    No analysis yet
+                                </h4>
+
+                                <p>
+                                    Submit a message to generate a
+                                    CyberGuard threat assessment.
+                                </p>
+
+                            </div>
+
+                            <div
+                                class="result-content hidden"
+                                id="messageResultContent"
+                            >
+
+                                <div class="risk-summary">
+
+                                    <div
+                                        class="risk-indicator"
+                                        id="messageRiskIndicator"
+                                    >
+
+                                        <span id="messageRiskLabel">
+                                            —
+                                        </span>
+
+                                    </div>
+
+                                    <div class="risk-copy">
+
+                                        <span>
+                                            THREAT CLASSIFICATION
+                                        </span>
+
+                                        <strong
+                                            id="messageThreatTitle"
+                                        >
+                                            Analysis complete
+                                        </strong>
+
+                                        <p
+                                            id="messageThreatDescription"
+                                        >
+                                            —
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="result-details">
+
+                                    <div class="detail-box">
+
+                                        <span>
+                                            CONFIDENCE
+                                        </span>
+
+                                        <strong
+                                            id="messageConfidence"
+                                        >
+                                            —
+                                        </strong>
+
+                                    </div>
+
+                                    <div class="detail-box">
+
+                                        <span>
+                                            INPUT TYPE
+                                        </span>
+
+                                        <strong
+                                            id="messageInputType"
+                                        >
+                                            —
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="result-section">
+
+                                    <div class="result-section-title">
+                                        DETECTION OUTPUT
+                                    </div>
+
+                                    <div
+                                        class="indicator-list"
+                                        id="messageIndicators"
+                                    >
+                                    </div>
+
+                                </div>
+
+
+                                <div class="raw-result">
+
+                                    <button
+                                        class="raw-toggle"
+                                        type="button"
+                                        data-target="messageRaw"
+                                    >
+                                        View raw engine response
+                                        <span>+</span>
+                                    </button>
+
+                                    <pre
+                                        id="messageRaw"
+                                        class="raw-content hidden"
+                                    ></pre>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- URL / WEBSITE ANALYSIS -->
+
+                    <div
+                        class="analysis-layout analysis-panel"
+                        id="analysis-url"
+                    >
+
+                        <div class="panel input-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        URL & WEBSITE ANALYSIS
+                                    </span>
+
+                                    <h3>
+                                        Inspect a suspicious destination
+                                    </h3>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="mode-switch">
+
+                                <button
+                                    class="mode-button active"
+                                    data-url-mode="url"
+                                >
+                                    Malicious URL
+                                </button>
+
+                                <button
+                                    class="mode-button"
+                                    data-url-mode="website"
+                                >
+                                    Fraudulent Website
+                                </button>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label for="urlInput">
+                                    WEBSITE / URL
+                                </label>
+
+                                <input
+                                    type="url"
+                                    id="urlInput"
+                                    placeholder="https://example.com/login"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                >
+
+                            </div>
+
+
+                            <div class="url-checks">
+
+                                <div class="url-check">
+
+                                    <span class="check-icon">
+                                        ✓
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Domain analysis
+                                        </strong>
+
+                                        <small>
+                                            Look-alike and spoofed domains
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="url-check">
+
+                                    <span class="check-icon">
+                                        ✓
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            URL manipulation
+                                        </strong>
+
+                                        <small>
+                                            Suspicious URL structures
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="url-check">
+
+                                    <span class="check-icon">
+                                        ✓
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Website indicators
+                                        </strong>
+
+                                        <small>
+                                            Login and deceptive patterns
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <button
+                                class="scan-button"
+                                id="scanUrlButton"
+                                type="button"
+                            >
+
+                                <span class="scan-button-icon">
+                                    ↗
+                                </span>
+
+                                <span>
+                                    Analyse Destination
+                                </span>
+
+                                <span class="scan-arrow">
+                                    →
+                                </span>
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="panel result-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        ANALYSIS RESULT
+                                    </span>
+
+                                    <h3>
+                                        URL Threat Assessment
+                                    </h3>
+
+                                </div>
+
+                                <span
+                                    class="result-state"
+                                    id="urlResultState"
+                                >
+                                    WAITING
+                                </span>
+
+                            </div>
+
+                            <div
+                                class="result-empty"
+                                id="urlResultEmpty"
+                            >
+
+                                <div class="empty-icon">
+                                    ↗
+                                </div>
+
+                                <h4>
+                                    No URL analysed
+                                </h4>
+
+                                <p>
+                                    Enter a destination to run it
+                                    through the CyberGuard engine.
+                                </p>
+
+                            </div>
+
+                            <div
+                                class="result-content hidden"
+                                id="urlResultContent"
+                            >
+
+                                <div class="risk-summary">
+
+                                    <div
+                                        class="risk-indicator"
+                                        id="urlRiskIndicator"
+                                    >
+
+                                        <span id="urlRiskLabel">
+                                            —
+                                        </span>
+
+                                    </div>
+
+                                    <div class="risk-copy">
+
+                                        <span>
+                                            DESTINATION ASSESSMENT
+                                        </span>
+
+                                        <strong
+                                            id="urlThreatTitle"
+                                        >
+                                            Analysis complete
+                                        </strong>
+
+                                        <p
+                                            id="urlThreatDescription"
+                                        >
+                                            —
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="url-display">
+
+                                    <span>
+                                        ANALYSED DESTINATION
+                                    </span>
+
+                                    <code id="analysedUrl">
+                                        —
+                                    </code>
+
+                                </div>
+
+
+                                <div class="result-section">
+
+                                    <div class="result-section-title">
+                                        ENGINE OUTPUT
+                                    </div>
+
+                                    <div
+                                        class="indicator-list"
+                                        id="urlIndicators"
+                                    >
+                                    </div>
+
+                                </div>
+
+
+                                <div class="raw-result">
+
+                                    <button
+                                        class="raw-toggle"
+                                        type="button"
+                                        data-target="urlRaw"
+                                    >
+                                        View raw engine response
+                                        <span>+</span>
+                                    </button>
+
+                                    <pre
+                                        id="urlRaw"
+                                        class="raw-content hidden"
+                                    ></pre>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- QR ANALYSIS -->
+
+                    <div
+                        class="analysis-layout analysis-panel"
+                        id="analysis-qr"
+                    >
+
+                        <div class="panel input-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        QR CODE ANALYSIS
+                                    </span>
+
+                                    <h3>
+                                        Scan a suspicious QR code
+                                    </h3>
+
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="upload-zone"
+                                id="qrDropZone"
+                            >
+
+                                <input
+                                    type="file"
+                                    id="qrInput"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    hidden
+                                >
+
+                                <div class="upload-icon">
+                                    ▦
+                                </div>
+
+                                <h4>
+                                    Drop QR image here
+                                </h4>
+
+                                <p>
+                                    or select an image from your device
+                                </p>
+
+                                <button
+                                    class="upload-button"
+                                    id="chooseQrButton"
+                                    type="button"
+                                >
+                                    Choose Image
+                                </button>
+
+                                <small>
+                                    PNG, JPG or WEBP
+                                </small>
+
+                            </div>
+
+
+                            <div
+                                class="selected-file hidden"
+                                id="selectedQrFile"
+                            >
+
+                                <div class="file-icon">
+                                    IMG
+                                </div>
+
+                                <div class="file-info">
+
+                                    <strong id="qrFileName">
+                                        —
+                                    </strong>
+
+                                    <span id="qrFileSize">
+                                        —
+                                    </span>
+
+                                </div>
+
+                                <button
+                                    id="removeQrFile"
+                                    type="button"
+                                >
+                                    ×
+                                </button>
+
+                            </div>
+
+
+                            <button
+                                class="scan-button"
+                                id="scanQrButton"
+                                type="button"
+                                disabled
+                            >
+
+                                <span class="scan-button-icon">
+                                    ▦
+                                </span>
+
+                                <span>
+                                    Analyse QR Code
+                                </span>
+
+                                <span class="scan-arrow">
+                                    →
+                                </span>
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="panel result-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        QR RESULT
+                                    </span>
+
+                                    <h3>
+                                        QR Threat Assessment
+                                    </h3>
+
+                                </div>
+
+                                <span
+                                    class="result-state"
+                                    id="qrResultState"
+                                >
+                                    WAITING
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                class="result-empty"
+                                id="qrResultEmpty"
+                            >
+
+                                <div class="empty-icon">
+                                    ▦
+                                </div>
+
+                                <h4>
+                                    No QR code analysed
+                                </h4>
+
+                                <p>
+                                    Upload a QR image to inspect it
+                                    using the CyberGuard QR engine.
+                                </p>
+
+                            </div>
+
+
+                            <div
+                                class="result-content hidden"
+                                id="qrResultContent"
+                            >
+
+                                <div class="risk-summary">
+
+                                    <div
+                                        class="risk-indicator"
+                                        id="qrRiskIndicator"
+                                    >
+
+                                        <span id="qrRiskLabel">
+                                            —
+                                        </span>
+
+                                    </div>
+
+                                    <div class="risk-copy">
+
+                                        <span>
+                                            QR ASSESSMENT
+                                        </span>
+
+                                        <strong
+                                            id="qrThreatTitle"
+                                        >
+                                            Analysis complete
+                                        </strong>
+
+                                        <p
+                                            id="qrThreatDescription"
+                                        >
+                                            —
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="result-section">
+
+                                    <div class="result-section-title">
+                                        ENGINE OUTPUT
+                                    </div>
+
+                                    <div
+                                        class="indicator-list"
+                                        id="qrIndicators"
+                                    >
+                                    </div>
+
+                                </div>
+
+
+                                <div class="raw-result">
+
+                                    <button
+                                        class="raw-toggle"
+                                        type="button"
+                                        data-target="qrRaw"
+                                    >
+                                        View raw engine response
+                                        <span>+</span>
+                                    </button>
+
+                                    <pre
+                                        id="qrRaw"
+                                        class="raw-content hidden"
+                                    ></pre>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Scope -->
+
+                    <div class="scope-note">
+
+                        <div class="scope-note-icon">
+                            i
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Current phishing coverage
+                            </strong>
+
+                            <p>
+                                CyberGuard is being built to analyse
+                                emails, SMS/messages, social-media
+                                messages, QR-code phishing, fraudulent
+                                websites and malicious/deceptive URLs.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =============================================
+                     ACCOUNT TAKEOVER
+                ============================================== -->
+
+                <section
+                    class="view"
+                    id="view-takeover"
+                >
+
+                    <div class="page-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                THREAT DETECTION / 02
+                            </div>
+
+                            <h2>
+                                Account Takeover Detection
+                            </h2>
+
+                            <p>
+                                Detect abnormal authentication and
+                                account behaviour.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="coming-soon">
+
+                        <div class="coming-icon">
+                            ◉
+                        </div>
+
+                        <span class="coming-label">
+                            MODULE IN DEVELOPMENT
                         </span>
+
+                        <h3>
+                            Behavioural Security Engine
+                        </h3>
+
+                        <p>
+                            This module will analyse failed login
+                            attempts, password spraying, unusual
+                            locations, unknown devices, suspicious
+                            sessions and sudden account behaviour
+                            changes.
+                        </p>
+
+                        <div class="planned-features">
+
+                            <span>
+                                Failed logins
+                            </span>
+
+                            <span>
+                                Password spraying
+                            </span>
+
+                            <span>
+                                Location anomalies
+                            </span>
+
+                            <span>
+                                Unknown devices
+                            </span>
+
+                            <span>
+                                Session anomalies
+                            </span>
+
+                        </div>
+
                     </div>
 
-                    <div
-                        class="report-badge neutral"
-                        id="report-badge"
-                    >
-                        WAITING
-                    </div>
-
-                </div>
+                </section>
 
 
-                <div
-                    class="report-loading"
-                    id="report-loading"
+                <!-- =============================================
+                     DIGITAL IMPERSONATION
+                ============================================== -->
+
+                <section
+                    class="view"
+                    id="view-impersonation"
                 >
-                    <div class="loader"></div>
-                    <span>
-                        Sending input to detection engine...
-                    </span>
-                </div>
+
+                    <div class="page-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                THREAT DETECTION / 03
+                            </div>
+
+                            <h2>
+                                Digital Impersonation Detection
+                            </h2>
+
+                            <p>
+                                Detect attempts to impersonate trusted
+                                people, authorities and organisations.
+                            </p>
+
+                        </div>
+
+                    </div>
 
 
-                <div
-                    class="report-error"
-                    id="report-error"
-                ></div>
+                    <div class="coming-soon">
+
+                        <div class="coming-icon">
+                            ◌
+                        </div>
+
+                        <span class="coming-label">
+                            MODULE IN DEVELOPMENT
+                        </span>
+
+                        <h3>
+                            Identity & Impersonation Engine
+                        </h3>
+
+                        <p>
+                            This module will focus on suspicious
+                            attempts involving government officials,
+                            senior management, teachers or university
+                            authorities, financial institutions,
+                            organisations, brands and known contacts.
+                        </p>
+
+                        <div class="planned-features">
+
+                            <span>
+                                Identity signals
+                            </span>
+
+                            <span>
+                                Brand impersonation
+                            </span>
+
+                            <span>
+                                Authority spoofing
+                            </span>
+
+                            <span>
+                                Contact impersonation
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </section>
 
 
-                <div
-                    class="report-content"
-                    id="report-content"
+                <!-- =============================================
+                     ACTIVITY
+                ============================================== -->
+
+                <section
+                    class="view"
+                    id="view-activity"
                 >
 
-                    <div class="report-row">
-                        <span>Status</span>
-                        <strong id="result-status">
-                            Awaiting analysis
-                        </strong>
+                    <div class="page-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                SECURITY OPERATIONS
+                            </div>
+
+                            <h2>
+                                Analysis History
+                            </h2>
+
+                            <p>
+                                Review analyses performed during this
+                                browser session.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="secondary-button"
+                            id="clearHistoryButton"
+                        >
+                            Clear History
+                        </button>
+
                     </div>
 
-                    <div class="report-row">
-                        <span>Risk Level</span>
-                        <strong id="result-risk">
-                            —
-                        </strong>
+
+                    <div class="panel history-panel">
+
+                        <div
+                            id="historyList"
+                            class="history-list"
+                        >
+
+                            <div class="history-empty">
+
+                                <div>
+                                    ◷
+                                </div>
+
+                                <h4>
+                                    No analysis history
+                                </h4>
+
+                                <p>
+                                    Completed analyses will appear here.
+                                </p>
+
+                            </div>
+
+                        </div>
+
                     </div>
 
-                    <div class="report-row">
-                        <span>Risk Score</span>
-                        <strong id="result-score">
-                            — / 100
-                        </strong>
+                </section>
+
+
+                <!-- =============================================
+                     ORGANISATION
+                ============================================== -->
+
+                <section
+                    class="view"
+                    id="view-organisation"
+                >
+
+                    <div class="page-heading">
+
+                        <div>
+
+                            <div class="eyebrow">
+                                ORGANISATION PROFILE
+                            </div>
+
+                            <h2>
+                                Organisation Settings
+                            </h2>
+
+                            <p>
+                                Configure the organisation context used
+                                throughout the CyberGuard interface.
+                            </p>
+
+                        </div>
+
                     </div>
 
-                    <div class="report-row">
-                        <span>AI Prediction</span>
-                        <strong id="result-prediction">
-                            —
-                        </strong>
+
+                    <div class="organisation-layout">
+
+                        <div class="panel organisation-card">
+
+                            <div class="organisation-logo">
+                                O
+                            </div>
+
+                            <div>
+
+                                <span class="panel-kicker">
+                                    CURRENT ORGANISATION
+                                </span>
+
+                                <h3 id="organisationDisplayName">
+                                    Your Organisation
+                                </h3>
+
+                                <p>
+                                    CyberGuard organisation security
+                                    workspace.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="panel settings-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <span class="panel-kicker">
+                                        CONFIGURATION
+                                    </span>
+
+                                    <h3>
+                                        Organisation Context
+                                    </h3>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label for="organisationInput">
+                                    ORGANISATION NAME
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="organisationInput"
+                                    placeholder="Enter organisation name"
+                                >
+
+                            </div>
+
+
+                            <button
+                                class="scan-button"
+                                id="saveOrganisationButton"
+                                type="button"
+                            >
+
+                                <span>
+                                    Save Organisation
+                                </span>
+
+                                <span class="scan-arrow">
+                                    →
+                                </span>
+
+                            </button>
+
+                            <p class="settings-note">
+                                This currently changes the interface
+                                context only. It does not change the
+                                underlying ML model.
+                            </p>
+
+                        </div>
+
                     </div>
 
-                    <div class="report-row">
-                        <span>Model Confidence</span>
-                        <strong id="result-confidence">
-                            —
-                        </strong>
-                    </div>
-
-                    <div class="report-row">
-                        <span>Detected Indicators</span>
-                        <strong id="result-indicators">
-                            None detected
-                        </strong>
-                    </div>
-
-                    <div class="report-row">
-                        <span>Threat Categories</span>
-                        <strong id="result-categories">
-                            None detected
-                        </strong>
-                    </div>
-
-                    <div class="report-row">
-                        <span>Possible Impersonation</span>
-                        <strong id="result-impersonation">
-                            None detected
-                        </strong>
-                    </div>
-
-                    <div class="report-row recommendation-row">
-                        <span>Organisation Recommendation</span>
-                        <strong id="result-recommendation">
-                            No analysis available.
-                        </strong>
-                    </div>
-
-                    <div
-                        class="decoded-content"
-                        id="decoded-content-wrapper"
-                    >
-                        <span>Decoded / Analysed Content</span>
-                        <pre id="decoded-content"></pre>
-                    </div>
-
-                </div>
+                </section>
 
             </div>
 
-        </section>
+        </main>
 
-    </main>
-
-
-    <!-- ================= FOOTER ================= -->
-    <footer class="footer">
-
-        <div class="footer-container">
-
-            <div class="footer-brand">
-
-                <div class="brand-name">
-                    CYBERGUARD
-                </div>
-
-                <p>
-                    Organisation-specific cybersecurity
-                    for suspicious digital activity.
-                </p>
-
-            </div>
+    </div>
 
 
-            <div class="footer-column">
+    <!-- =========================================================
+         GLOBAL LOADING OVERLAY
+    ========================================================== -->
 
-                <h4>Platform</h4>
+    <div
+        class="loading-overlay hidden"
+        id="loadingOverlay"
+    >
 
-                <a href="#home">Home</a>
-                <a href="#detection">Detection</a>
-                <a href="#scanner">Scanner</a>
+        <div class="loading-card">
 
-            </div>
+            <div class="loader"></div>
 
+            <span id="loadingTitle">
+                Analysing
+            </span>
 
-            <div class="footer-column">
-
-                <h4>Modules</h4>
-
-                <a href="#scanner">Phishing</a>
-                <a href="#scanner">Website Intelligence</a>
-                <a href="#scanner">QR Analysis</a>
-
-            </div>
+            <p id="loadingDescription">
+                CyberGuard detection engine is processing your input.
+            </p>
 
         </div>
 
+    </div>
 
-        <div class="footer-bottom">
-            <span>CYBERGUARD</span>
-            <span>ORGANISATION SECURITY</span>
+
+    <!-- =========================================================
+         TOAST
+    ========================================================== -->
+
+    <div
+        class="toast"
+        id="toast"
+    >
+
+        <span
+            class="toast-icon"
+            id="toastIcon"
+        >
+            ✓
+        </span>
+
+        <div>
+
+            <strong id="toastTitle">
+                Done
+            </strong>
+
+            <p id="toastMessage">
+                Operation completed.
+            </p>
+
         </div>
 
-    </footer>
+        <button
+            id="toastClose"
+            type="button"
+        >
+            ×
+        </button>
+
+    </div>
 
 
-    <script type="module" src="script.js"></script>
+    <!-- Main JavaScript -->
+    <script src="script.js"></script>
 
 </body>
 </html>
