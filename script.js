@@ -1598,6 +1598,24 @@ function renderAnalysisResult(
     }
 
 
+    const meaning =
+        $(`#${type}Meaning`);
+
+    if (meaning) {
+        meaning.textContent =
+            normalized.message ||
+            risk.description;
+    }
+
+    const recommendation =
+        $(`#${type}Recommendation`);
+
+    if (recommendation) {
+        recommendation.textContent =
+            normalized.recommendation ||
+            getDefaultRecommendation(risk.className, type);
+    }
+
     const analysedUrl =
         $("#analysedUrl");
 
@@ -1644,122 +1662,60 @@ function renderAnalysisResult(
 
 function normalizeResult(data) {
 
-    let value =
-        unwrapGradioData(
-            data
-        );
+    let value = unwrapGradioData(data);
 
-
-    if (
-        typeof value ===
-        "string"
-    ) {
-
-        const parsed =
-            tryParseJson(
-                value
-            );
-
+    if (typeof value === "string") {
+        const parsed = tryParseJson(value);
         if (parsed !== null) {
-
-            value =
-                parsed;
+            value = parsed;
         }
     }
-
 
     const result = {
-
-        raw:
-            value,
-
-        label:
-            null,
-
-        confidence:
-            null,
-
-        indicators:
-            [],
-
-        message:
-            null,
-
-        threat:
-            null
+        raw: value,
+        label: null,
+        prediction: null,
+        confidence: null,
+        riskLevel: null,
+        status: null,
+        riskScore: null,
+        indicatorScore: null,
+        indicators: [],
+        message: null,
+        threat: null,
+        recommendation: null,
+        payload: null,
+        detectedCategories: [],
+        highRiskCombinations: []
     };
 
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
+    if (value === null || value === undefined) {
         return result;
     }
 
-
-    if (
-        typeof value ===
-        "string"
-    ) {
-
-        result.message =
-            value;
-
-        result.label =
-            value;
-
+    if (typeof value === "string") {
+        result.message = value;
+        result.label = value;
         return result;
     }
 
-
-    if (
-        Array.isArray(value)
-    ) {
-
-        result.indicators =
-            flattenStrings(
-                value
-            );
-
-        const firstObject =
-            value.find(
-                item =>
-                    item &&
-                    typeof item ===
-                    "object"
-            );
-
-        if (firstObject) {
-
-            mergeObjectFields(
-                result,
-                firstObject
-            );
-        }
-
+    if (Array.isArray(value)) {
+        value.forEach(item => {
+            if (item && typeof item === "object") {
+                mergeObjectFields(result, item);
+            } else if (typeof item === "string") {
+                result.indicators.push(item.trim());
+            }
+        });
         return result;
     }
 
-
-    if (
-        typeof value ===
-        "object"
-    ) {
-
-        mergeObjectFields(
-            result,
-            value
-        );
-
+    if (typeof value === "object") {
+        mergeObjectFields(result, value);
         return result;
     }
 
-
-    result.message =
-        String(value);
-
+    result.message = String(value);
     return result;
 }
 
@@ -1768,147 +1724,208 @@ function normalizeResult(data) {
    MERGE OBJECT FIELDS
    ============================================================ */
 
-function mergeObjectFields(
-    result,
-    object
-) {
+function mergeObjectFields(result, object) {
+
+    if (!object || typeof object !== "object") {
+        return;
+    }
+
+    /*
+     * CyberGuard's engine commonly returns:
+     *
+     * [
+     *   {
+     *     payload: "...",
+     *     payload_type: "TEXT",
+     *     analysis: {
+     *       message: "...",
+     *       status: "...",
+     *       risk_level: "...",
+     *       risk_score: 0,
+     *       model_prediction: "benign",
+     *       model_confidence: 100,
+     *       indicator_score: 0,
+     *       high_risk_combinations: [],
+     *       detected_categories: {},
+     *       recommendation: "..."
+     *     }
+     *   }
+     * ]
+     *
+     * The old renderer only inspected the outer object, which is why
+     * the UI fell back to a generic result and exposed the raw JSON.
+     * Always inspect the nested analysis object first.
+     */
+    if (object.analysis && typeof object.analysis === "object") {
+        mergeObjectFields(result, object.analysis);
+    }
+
+    if (object.result && typeof object.result === "object") {
+        mergeObjectFields(result, object.result);
+    }
 
     const labelKeys = [
-
-        "label",
+        "model_prediction",
         "prediction",
         "predicted_label",
-        "class",
-        "category",
-        "result",
-        "status",
+        "label",
+        "risk_level",
         "risk",
-        "threat"
+        "threat",
+        "category",
+        "class",
+        "status",
+        "result"
     ];
 
-
-    for (
-        const key of labelKeys
-    ) {
-
-        if (
-            object[key] !== undefined &&
-            object[key] !== null
-        ) {
-
-            if (
-                typeof object[key] !==
-                "object"
-            ) {
-
-                result.label =
-                    String(
-                        object[key]
-                    );
-
-                break;
+    if (!result.label) {
+        for (const key of labelKeys) {
+            if (object[key] !== undefined && object[key] !== null) {
+                if (typeof object[key] !== "object") {
+                    result.label = String(object[key]);
+                    break;
+                }
             }
         }
     }
 
+    if (!result.prediction) {
+        const prediction =
+            object.model_prediction ??
+            object.prediction ??
+            object.predicted_label;
+
+        if (prediction !== undefined && prediction !== null) {
+            result.prediction = String(prediction);
+        }
+    }
 
     const confidenceKeys = [
-
+        "model_confidence",
         "confidence",
         "score",
         "probability",
-        "risk_score",
         "phishing_probability"
     ];
 
-
-    for (
-        const key of confidenceKeys
-    ) {
-
-        if (
-            object[key] !== undefined &&
-            object[key] !== null
-        ) {
-
-            const number =
-                Number(
-                    object[key]
-                );
-
-            if (
-                Number.isFinite(number)
-            ) {
-
-                result.confidence =
-                    number;
-
-                break;
+    if (result.confidence === null) {
+        for (const key of confidenceKeys) {
+            if (object[key] !== undefined && object[key] !== null) {
+                const number = Number(object[key]);
+                if (Number.isFinite(number)) {
+                    result.confidence = number;
+                    break;
+                }
             }
         }
     }
 
+    const riskLevel =
+        object.risk_level ??
+        object.riskLevel;
+
+    if (riskLevel !== undefined && riskLevel !== null) {
+        result.riskLevel = String(riskLevel);
+    }
+
+    const status = object.status;
+    if (status !== undefined && status !== null) {
+        result.status = String(status);
+    }
+
+    if (object.risk_score !== undefined && object.risk_score !== null) {
+        const n = Number(object.risk_score);
+        if (Number.isFinite(n)) result.riskScore = n;
+    }
+
+    if (object.indicator_score !== undefined && object.indicator_score !== null) {
+        const n = Number(object.indicator_score);
+        if (Number.isFinite(n)) result.indicatorScore = n;
+    }
+
+    const recommendation =
+        object.recommendation ??
+        object.recommended_action ??
+        object.action;
+
+    if (recommendation !== undefined && recommendation !== null) {
+        if (typeof recommendation === "string") {
+            result.recommendation = recommendation;
+        } else {
+            const values = flattenStrings(recommendation);
+            result.recommendation = values.join(" ");
+        }
+    }
+
+    const payload =
+        object.payload ??
+        object.decoded_payload ??
+        object.decoded_content ??
+        object.url;
+
+    if (payload !== undefined && payload !== null && !result.payload) {
+        if (typeof payload === "string") {
+            result.payload = payload;
+        }
+    }
+
+    const categoryValue =
+        object.detected_categories ??
+        object.categories;
+
+    if (categoryValue !== undefined && categoryValue !== null) {
+        result.detectedCategories.push(
+            ...flattenStrings(categoryValue)
+        );
+    }
+
+    if (object.high_risk_combinations !== undefined) {
+        result.highRiskCombinations.push(
+            ...flattenStrings(object.high_risk_combinations)
+        );
+    }
 
     const indicatorKeys = [
-
         "indicators",
         "features",
         "reasons",
         "signals",
         "findings",
-        "detections",
-        "recommendations"
+        "detections"
     ];
 
-
-    for (
-        const key of indicatorKeys
-    ) {
-
-        if (
-            object[key] !== undefined &&
-            object[key] !== null
-        ) {
-
+    for (const key of indicatorKeys) {
+        if (object[key] !== undefined && object[key] !== null) {
             result.indicators.push(
-                ...flattenStrings(
-                    object[key]
-                )
+                ...flattenStrings(object[key])
             );
         }
     }
 
-
     const messageKeys = [
-
         "message",
         "explanation",
         "description",
-        "details",
-        "analysis"
+        "details"
     ];
 
-
-    for (
-        const key of messageKeys
-    ) {
-
-        if (
-            typeof object[key] ===
-            "string"
-        ) {
-
-            result.message =
-                object[key];
-
-            break;
+    if (!result.message) {
+        for (const key of messageKeys) {
+            if (typeof object[key] === "string") {
+                result.message = object[key];
+                break;
+            }
         }
     }
 
+    if (!result.message && result.status) {
+        result.message = result.status;
+    }
 
     if (!result.threat) {
-
         result.threat =
+            result.prediction ||
+            result.riskLevel ||
             result.label;
     }
 }
@@ -2107,32 +2124,27 @@ function formatKey(key) {
    DETERMINE RISK
    ============================================================ */
 
-function determineRisk(
-    normalized
-) {
+function determineRisk(normalized) {
 
-    const text =
-        [
-            normalized.label,
-            normalized.message,
-            normalized.threat,
-            ...normalized.indicators
-        ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
+    const prediction = String(
+        normalized.prediction || normalized.label || ""
+    ).toLowerCase();
 
+    const riskLevel = String(
+        normalized.riskLevel || ""
+    ).toLowerCase();
 
-    const confidence =
-        normalized.confidence;
+    const status = String(
+        normalized.status || ""
+    ).toLowerCase();
 
+    const message = String(
+        normalized.message || normalized.threat || ""
+    ).toLowerCase();
 
-    /*
-     * Explicit phishing / malicious indicators
-     */
+    const combined = `${prediction} ${riskLevel} ${status} ${message}`;
 
-    const dangerWords = [
-
+    const danger = [
         "phishing",
         "malicious",
         "malware",
@@ -2144,165 +2156,75 @@ function determineRisk(
         "high risk",
         "critical",
         "attack",
-        "threat",
-        "credential theft"
-    ];
+        "credential theft",
+        "credential theft",
+        "spam"
+    ].some(word => combined.includes(word));
 
-
-    const safeWords = [
-
+    const safe = [
         "benign",
         "safe",
         "legitimate",
         "ham",
         "clean",
-        "not phishing",
-        "no threat"
-    ];
+        "low risk",
+        "no immediate threat",
+        "no threat",
+        "not phishing"
+    ].some(word => combined.includes(word));
 
-
-    const danger =
-        dangerWords.some(
-            word =>
-                text.includes(word)
-        );
-
-
-    const safe =
-        safeWords.some(
-            word =>
-                text.includes(word)
-        );
-
-
-    if (
-        danger &&
-        !safe
-    ) {
-
+    if (danger && !safe) {
         return {
-
-            className:
-                "danger",
-
-            label:
-                "HIGH RISK",
-
-            title:
-                "Suspicious activity detected",
-
+            className: "danger",
+            label: "HIGH RISK",
+            title: "Potential threat detected",
             description:
-                "The detection engine identified indicators associated with a potentially unsafe input."
+                "CyberGuard found signals associated with a potentially unsafe or deceptive input. Treat it with caution."
         };
     }
 
-
-    if (
-        safe &&
-        !danger
-    ) {
-
+    if (safe && !danger) {
         return {
-
-            className:
-                "safe",
-
-            label:
-                "LOW RISK",
-
-            title:
-                "No major threat indicated",
-
+            className: "safe",
+            label: "LOW RISK",
+            title: "No immediate threat detected",
             description:
-                "The detection engine did not identify strong indicators of the targeted threat."
+                "The connected detection engine classified this input as low risk based on the signals it returned."
         };
     }
 
+    const confidence = normalized.confidence;
 
-    if (
-        confidence !== null
-    ) {
+    if (confidence !== null) {
+        const normalizedConfidence = normalizeConfidence(confidence);
 
-        const normalizedConfidence =
-            normalizeConfidence(
-                confidence
-            );
-
-
-        if (
-            normalizedConfidence >=
-            0.75
-        ) {
-
+        if (normalizedConfidence >= 0.75) {
             return {
-
-                className:
-                    "danger",
-
-                label:
-                    "HIGH RISK",
-
-                title:
-                    "High-confidence detection",
-
+                className: "danger",
+                label: "HIGH RISK",
+                title: "High-confidence threat classification",
                 description:
-                    "The engine returned a high-confidence threat classification."
+                    "The detection engine returned a high-confidence threat classification."
             };
         }
 
-
-        if (
-            normalizedConfidence >=
-            0.45
-        ) {
-
+        if (normalizedConfidence >= 0.45) {
             return {
-
-                className:
-                    "warning",
-
-                label:
-                    "REVIEW",
-
-                title:
-                    "Further review recommended",
-
+                className: "warning",
+                label: "REVIEW",
+                title: "Review recommended",
                 description:
-                    "The result contains signals that should be reviewed before treating the input as safe."
+                    "The engine returned signals that deserve review before the input is treated as safe."
             };
         }
-
-
-        return {
-
-            className:
-                "safe",
-
-            label:
-                "LOW RISK",
-
-            title:
-                "Low-risk classification",
-
-            description:
-                "The engine returned a lower-risk classification for this input."
-        };
     }
-
 
     return {
-
-        className:
-            "warning",
-
-        label:
-            "REVIEW",
-
-        title:
-            "Analysis completed",
-
+        className: "warning",
+        label: "REVIEW",
+        title: "Analysis completed",
         description:
-            "The engine returned a result. Review the detection output below before making a decision."
+            "The engine returned a result, but it did not provide enough clear information for a stronger classification."
     };
 }
 
@@ -2367,62 +2289,79 @@ function formatConfidence(
    BUILD INDICATORS
    ============================================================ */
 
-function buildIndicators(
-    normalized
-) {
+function buildIndicators(normalized) {
 
-    const indicators =
-        [];
+    const indicators = [];
 
-
-    if (
-        normalized.label
-    ) {
-
-        indicators.push(
-            `Classification: ${normalized.label}`
-        );
+    if (normalized.status) {
+        indicators.push(`Status: ${normalized.status}`);
     }
 
-
-    if (
-        normalized.message
-    ) {
-
-        indicators.push(
-            normalized.message
-        );
+    if (normalized.riskLevel) {
+        indicators.push(`Risk level: ${normalized.riskLevel}`);
     }
 
+    if (normalized.prediction) {
+        indicators.push(`Model classification: ${normalized.prediction}`);
+    }
 
-    normalized.indicators.forEach(
-        item => {
+    normalized.detectedCategories.forEach(item => {
+        indicators.push(`Detected category: ${item}`);
+    });
 
-            indicators.push(
-                item
-            );
+    normalized.highRiskCombinations.forEach(item => {
+        indicators.push(`Risk combination: ${item}`);
+    });
+
+    normalized.indicators.forEach(item => {
+        indicators.push(item);
+    });
+
+    if (normalized.riskScore !== null) {
+        indicators.push(`Risk score: ${normalized.riskScore}`);
+    }
+
+    if (normalized.indicatorScore !== null) {
+        indicators.push(`Indicator score: ${normalized.indicatorScore}`);
+    }
+
+    if (indicators.length === 0 && normalized.message) {
+        indicators.push(normalized.message);
+    }
+
+    if (indicators.length === 0) {
+        indicators.push("No additional detection indicators were returned by the engine.");
+    }
+
+    return [...new Set(indicators)].slice(0, 12);
+}
+
+
+function getDefaultRecommendation(riskClass, type) {
+
+    if (riskClass === "danger") {
+        if (type === "url") {
+            return "Do not open the destination or enter credentials until it has been independently verified.";
         }
-    );
-
-
-    if (
-        indicators.length === 0
-    ) {
-
-        indicators.push(
-            "The engine returned a result. Expand the raw response below for the complete output."
-        );
+        if (type === "qr") {
+            return "Do not open the decoded destination or provide credentials until it has been independently verified.";
+        }
+        return "Do not click links, share credentials, or follow instructions until the sender and request are independently verified.";
     }
 
+    if (riskClass === "safe") {
+        return "No immediate threat was indicated. Continue to use normal security precautions.";
+    }
 
-    return [
-        ...new Set(
-            indicators
-        )
-    ].slice(
-        0,
-        12
-    );
+    if (type === "url") {
+        return "Review the destination and sender context before opening it or entering sensitive information.";
+    }
+
+    if (type === "qr") {
+        return "Review the decoded content and destination before opening it or entering sensitive information.";
+    }
+
+    return "Review the sender, links and request context before taking action.";
 }
 
 
@@ -2526,6 +2465,22 @@ function renderAnalysisError(
         );
     }
 
+
+    const meaning =
+        $(`#${type}Meaning`);
+
+    if (meaning) {
+        meaning.textContent =
+            "The detection engine could not complete this analysis.";
+    }
+
+    const recommendation =
+        $(`#${type}Recommendation`);
+
+    if (recommendation) {
+        recommendation.textContent =
+            "Retry the analysis or verify that the detection engine is available.";
+    }
 
     const raw =
         $(`#${type}Raw`);
