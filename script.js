@@ -1,1120 +1,1697 @@
-/*
-=========================================================
-CYBERGUARD
-Organisation Security
+/* ============================================================
+   CYBERGUARD
+   Organisation Security Platform
 
-Frontend:
-    index.html
-    style.css
-    script.js
+   Frontend:
+   - Vanilla JavaScript
+   - Hugging Face Gradio Client
+   - No backend token exposed in browser
 
-Backend:
-    Hugging Face Space
-    saswatpatra/cyberguard_phishing
+   Connected Space:
+   saswatpatra/cyberguard_phishing
 
-Available endpoints:
-    /analyze_message
-    /analyze_website
-    /scan_qr
-=========================================================
-*/
+   Current API endpoints:
+   /analyze_message
+   /analyze_website
+   /scan_qr
+   ============================================================ */
 
 
-import { Client, handle_file } from
-    "https://cdn.jsdelivr.net/npm/@gradio/client/+esm";
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+
+const CONFIG = {
+
+    HF_SPACE:
+        "saswatpatra/cyberguard_phishing",
+
+    ENDPOINTS: {
+
+        MESSAGE:
+            "/analyze_message",
+
+        WEBSITE:
+            "/analyze_website",
+
+        QR:
+            "/scan_qr"
+    },
+
+    MAX_MESSAGE_LENGTH:
+        15000,
+
+    MAX_QR_SIZE:
+        10 * 1024 * 1024,
+
+    HISTORY_KEY:
+        "cyberguard_analysis_history",
+
+    ORGANISATION_KEY:
+        "cyberguard_organisation"
+};
 
 
-// =======================================================
-// HUGGING FACE SPACE
-// =======================================================
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
 
-const HF_SPACE = "saswatpatra/cyberguard_phishing";
+const state = {
 
-let clientPromise = null;
+    gradioClient: null,
+
+    gradioHandleFile: null,
+
+    clientLoading: false,
+
+    currentView:
+        "overview",
+
+    currentAnalysis:
+        "message",
+
+    currentUrlMode:
+        "url",
+
+    selectedQrFile:
+        null,
+
+    history:
+        [],
+
+    organisation:
+        "Your Organisation"
+};
 
 
-// Connect once and reuse the connection.
-async function getClient() {
+/* ============================================================
+   DOM HELPERS
+   ============================================================ */
 
-    if (!clientPromise) {
+function $(selector) {
 
-        clientPromise = Client.connect(HF_SPACE);
-
-    }
-
-    return await clientPromise;
+    return document.querySelector(selector);
 }
 
 
-// =======================================================
-// DOM ELEMENTS
-// =======================================================
+function $$(selector) {
 
-const tabs = document.querySelectorAll(".scanner-tab");
-
-const panels = {
-    message: document.getElementById("message-panel"),
-    website: document.getElementById("website-panel"),
-    qr: document.getElementById("qr-panel")
-};
-
-const messageInput =
-    document.getElementById("message-input");
-
-const websiteInput =
-    document.getElementById("website-input");
-
-const qrInput =
-    document.getElementById("qr-input");
-
-const uploadArea =
-    document.getElementById("upload-area");
-
-const fileSelected =
-    document.getElementById("file-selected");
-
-const analyzeMessageButton =
-    document.getElementById("analyze-message-btn");
-
-const analyzeWebsiteButton =
-    document.getElementById("analyze-website-btn");
-
-const analyzeQRButton =
-    document.getElementById("analyze-qr-btn");
-
-const clearQRButton =
-    document.getElementById("clear-qr-btn");
+    return document.querySelectorAll(selector);
+}
 
 
-// =======================================================
-// REPORT ELEMENTS
-// =======================================================
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
 
-const reportCard =
-    document.getElementById("report-card");
-
-const reportLoading =
-    document.getElementById("report-loading");
-
-const reportError =
-    document.getElementById("report-error");
-
-const reportContent =
-    document.getElementById("report-content");
-
-const reportBadge =
-    document.getElementById("report-badge");
-
-const reportType =
-    document.getElementById("report-type");
-
-const resultStatus =
-    document.getElementById("result-status");
-
-const resultRisk =
-    document.getElementById("result-risk");
-
-const resultScore =
-    document.getElementById("result-score");
-
-const resultPrediction =
-    document.getElementById("result-prediction");
-
-const resultConfidence =
-    document.getElementById("result-confidence");
-
-const resultIndicators =
-    document.getElementById("result-indicators");
-
-const resultCategories =
-    document.getElementById("result-categories");
-
-const resultImpersonation =
-    document.getElementById("result-impersonation");
-
-const resultRecommendation =
-    document.getElementById("result-recommendation");
-
-const decodedContentWrapper =
-    document.getElementById("decoded-content-wrapper");
-
-const decodedContent =
-    document.getElementById("decoded-content");
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeCyberGuard
+);
 
 
-// =======================================================
-// TAB SWITCHING
-// =======================================================
+async function initializeCyberGuard() {
 
-tabs.forEach(tab => {
+    loadOrganisation();
 
-    tab.addEventListener("click", () => {
+    loadHistory();
 
-        const selectedTab =
-            tab.dataset.tab;
+    initializeNavigation();
 
+    initializeAnalysisTabs();
 
-        // Active tab
-        tabs.forEach(item => {
+    initializeMessageInput();
 
-            item.classList.remove("active");
+    initializeUrlControls();
 
-        });
+    initializeQrControls();
 
-        tab.classList.add("active");
+    initializeQuickActions();
 
+    initializeRawToggles();
 
-        // Active panel
-        Object.values(panels).forEach(panel => {
+    initializeOrganisationSettings();
 
-            panel.classList.remove("active");
+    initializeGlobalControls();
 
-        });
+    updateOrganisationUI();
 
-        panels[selectedTab].classList.add("active");
+    await initializeGradioClient();
+}
 
 
-        // Reset old report when changing scanner type
-        resetReport();
+/* ============================================================
+   GRADIO CLIENT
+   ============================================================ */
 
-    });
+async function initializeGradioClient() {
 
-});
+    if (state.gradioClient) {
+        return state.gradioClient;
+    }
 
+    if (state.clientLoading) {
+        return null;
+    }
 
-// =======================================================
-// MESSAGE ANALYSIS
-// =======================================================
+    state.clientLoading = true;
 
-analyzeMessageButton.addEventListener(
-    "click",
-    async () => {
+    try {
 
-        const message =
-            messageInput.value.trim();
+        /*
+         * The @gradio/client package is loaded in index.html.
+         * We dynamically import the same CDN package here so
+         * script.js remains a normal JavaScript file.
+         */
 
+        const gradioModule = await import(
+            "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"
+        );
 
-        if (!message) {
+        const Client =
+            gradioModule.Client;
 
-            showError(
-                "Please enter a message before starting the analysis."
+        const handleFile =
+            gradioModule.handle_file;
+
+        if (!Client) {
+
+            throw new Error(
+                "Gradio Client could not be loaded."
             );
-
-            return;
-
         }
 
+        state.gradioHandleFile =
+            handleFile;
 
-        setLoading(true, "MESSAGE");
+        state.gradioClient =
+            await Client.connect(
+                CONFIG.HF_SPACE
+            );
+
+        console.log(
+            "[CyberGuard] Connected to Hugging Face Space:",
+            CONFIG.HF_SPACE
+        );
+
+        showToast(
+            "Engine connected",
+            "CyberGuard detection engine is ready.",
+            "success"
+        );
+
+        return state.gradioClient;
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] Gradio connection failed:",
+            error
+        );
+
+        showToast(
+            "Engine connection issue",
+            "The interface loaded, but the Hugging Face engine could not be connected.",
+            "error"
+        );
+
+        return null;
+
+    } finally {
+
+        state.clientLoading =
+            false;
+    }
+}
 
 
-        try {
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
 
-            const client =
-                await getClient();
+function initializeNavigation() {
 
+    $$(".nav-item").forEach(
+        button => {
 
-            const result =
-                await client.predict(
-                    "/analyze_message",
-                    {
-                        message: message
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const view =
+                        button.dataset.view;
+
+                    if (!view) {
+                        return;
                     }
-                );
 
-
-            const data =
-                extractResult(result);
-
-
-            displayReport(
-                data,
-                "MESSAGE ANALYSIS"
+                    navigateTo(view);
+                }
             );
-
-
-        } catch (error) {
-
-            console.error(
-                "Message analysis error:",
-                error
-            );
-
-            showError(
-                getErrorMessage(error)
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    }
-);
-
-
-// =======================================================
-// WEBSITE / URL ANALYSIS
-// =======================================================
-
-analyzeWebsiteButton.addEventListener(
-    "click",
-    async () => {
-
-        const url =
-            websiteInput.value.trim();
-
-
-        if (!url) {
-
-            showError(
-                "Please enter a website URL before starting the analysis."
-            );
-
-            return;
-
-        }
-
-
-        setLoading(true, "WEBSITE ANALYSIS");
-
-
-        try {
-
-            const client =
-                await getClient();
-
-
-            const result =
-                await client.predict(
-                    "/analyze_website",
-                    {
-                        url: url
-                    }
-                );
-
-
-            const data =
-                extractResult(result);
-
-
-            displayReport(
-                data,
-                "WEBSITE ANALYSIS"
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "Website analysis error:",
-                error
-            );
-
-            showError(
-                getErrorMessage(error)
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    }
-);
-
-
-// =======================================================
-// QR FILE SELECTION
-// =======================================================
-
-qrInput.addEventListener(
-    "change",
-    () => {
-
-        const file =
-            qrInput.files[0];
-
-
-        if (!file) {
-
-            fileSelected.textContent = "";
-
-            analyzeQRButton.disabled = true;
-
-            return;
-
-        }
-
-
-        fileSelected.textContent =
-            `Selected: ${file.name}`;
-
-
-        analyzeQRButton.disabled = false;
-
-    }
-);
-
-
-// =======================================================
-// QR ANALYSIS
-// =======================================================
-
-analyzeQRButton.addEventListener(
-    "click",
-    async () => {
-
-        const file =
-            qrInput.files[0];
-
-
-        if (!file) {
-
-            showError(
-                "Please select a QR-code image first."
-            );
-
-            return;
-
-        }
-
-
-        setLoading(true, "QR ANALYSIS");
-
-
-        try {
-
-            const client =
-                await getClient();
-
-
-            /*
-             * Gradio's handle_file converts the
-             * browser File into the format expected
-             * by the Space's image input.
-             */
-
-            const result =
-                await client.predict(
-                    "/scan_qr",
-                    {
-                        image: handle_file(file)
-                    }
-                );
-
-
-            const data =
-                extractResult(result);
-
-
-            displayReport(
-                data,
-                "QR ANALYSIS"
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "QR analysis error:",
-                error
-            );
-
-            showError(
-                getErrorMessage(error)
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    }
-);
-
-
-// =======================================================
-// CLEAR MESSAGE / WEBSITE INPUTS
-// =======================================================
-
-document.querySelectorAll(
-    "[data-clear]"
-).forEach(button => {
-
-    button.addEventListener(
-        "click",
-        () => {
-
-            const target =
-                document.getElementById(
-                    button.dataset.clear
-                );
-
-            if (target) {
-
-                target.value = "";
-
-            }
-
-            resetReport();
-
         }
     );
 
-});
 
+    $$("[data-view-target]").forEach(
+        button => {
 
-// =======================================================
-// CLEAR QR
-// =======================================================
+            button.addEventListener(
+                "click",
+                () => {
 
-clearQRButton.addEventListener(
-    "click",
-    () => {
-
-        qrInput.value = "";
-
-        fileSelected.textContent = "";
-
-        analyzeQRButton.disabled = true;
-
-        resetReport();
-
-    }
-);
-
-
-// =======================================================
-// DRAG & DROP QR
-// =======================================================
-
-uploadArea.addEventListener(
-    "dragover",
-    event => {
-
-        event.preventDefault();
-
-        uploadArea.classList.add("dragover");
-
-    }
-);
-
-uploadArea.addEventListener(
-    "dragleave",
-    () => {
-
-        uploadArea.classList.remove("dragover");
-
-    }
-);
-
-uploadArea.addEventListener(
-    "drop",
-    event => {
-
-        event.preventDefault();
-
-        uploadArea.classList.remove("dragover");
-
-
-        const file =
-            event.dataTransfer.files[0];
-
-
-        if (!file) {
-            return;
-        }
-
-
-        if (!file.type.startsWith("image/")) {
-
-            showError(
-                "Please upload an image file containing the QR code."
+                    navigateTo(
+                        button.dataset.viewTarget
+                    );
+                }
             );
+        }
+    );
+}
 
-            return;
 
+function navigateTo(viewName) {
+
+    const view =
+        $(`#view-${viewName}`);
+
+    if (!view) {
+        return;
+    }
+
+    $$(".view").forEach(
+        viewElement => {
+            viewElement.classList.remove(
+                "active"
+            );
+        }
+    );
+
+    view.classList.add("active");
+
+
+    $$(".nav-item").forEach(
+        item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.view === viewName
+            );
+        }
+    );
+
+
+    state.currentView =
+        viewName;
+
+
+    const names = {
+
+        overview:
+            "Security Overview",
+
+        phishing:
+            "Phishing Detection",
+
+        takeover:
+            "Account Takeover",
+
+        impersonation:
+            "Digital Impersonation",
+
+        activity:
+            "Analysis History",
+
+        organisation:
+            "Organisation"
+    };
+
+
+    const breadcrumb =
+        $("#breadcrumbCurrent");
+
+    if (breadcrumb) {
+
+        breadcrumb.textContent =
+            names[viewName] ||
+            "CyberGuard";
+    }
+
+
+    closeMobileSidebar();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* ============================================================
+   MOBILE NAVIGATION
+   ============================================================ */
+
+function initializeGlobalControls() {
+
+    const mobileMenu =
+        $("#mobileMenu");
+
+    if (mobileMenu) {
+
+        mobileMenu.addEventListener(
+            "click",
+            () => {
+
+                const sidebar =
+                    $("#sidebar");
+
+                sidebar.classList.toggle(
+                    "mobile-open"
+                );
+            }
+        );
+    }
+}
+
+
+function closeMobileSidebar() {
+
+    const sidebar =
+        $("#sidebar");
+
+    if (sidebar) {
+
+        sidebar.classList.remove(
+            "mobile-open"
+        );
+    }
+}
+
+
+/* ============================================================
+   ANALYSIS TABS
+   ============================================================ */
+
+function initializeAnalysisTabs() {
+
+    $$(".analysis-tab").forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    activateAnalysis(
+                        tab.dataset.analysis
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+function activateAnalysis(
+    analysisType
+) {
+
+    const panel =
+        $(`#analysis-${analysisType}`);
+
+    if (!panel) {
+        return;
+    }
+
+    state.currentAnalysis =
+        analysisType;
+
+
+    $$(".analysis-tab").forEach(
+        tab => {
+
+            tab.classList.toggle(
+                "active",
+                tab.dataset.analysis ===
+                analysisType
+            );
+        }
+    );
+
+
+    $$(".analysis-panel").forEach(
+        analysisPanel => {
+
+            analysisPanel.classList.remove(
+                "active"
+            );
+        }
+    );
+
+
+    panel.classList.add("active");
+}
+
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+
+function initializeQuickActions() {
+
+    $$(".quick-action").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    navigateTo("phishing");
+
+                    activateAnalysis(
+                        button.dataset.analysis
+                    );
+                }
+            );
+        }
+    );
+
+
+    const openPhishingButton =
+        $("#openPhishingButton");
+
+    if (openPhishingButton) {
+
+        openPhishingButton.addEventListener(
+            "click",
+            () => {
+
+                navigateTo("phishing");
+
+                activateAnalysis("message");
+            }
+        );
+    }
+}
+
+
+/* ============================================================
+   MESSAGE INPUT
+   ============================================================ */
+
+function initializeMessageInput() {
+
+    const textarea =
+        $("#messageInput");
+
+    const counter =
+        $("#messageCount");
+
+    if (!textarea) {
+        return;
+    }
+
+    textarea.addEventListener(
+        "input",
+        () => {
+
+            const length =
+                textarea.value.length;
+
+            counter.textContent =
+                length.toLocaleString();
+
+            if (
+                length >
+                CONFIG.MAX_MESSAGE_LENGTH
+            ) {
+
+                textarea.value =
+                    textarea.value.slice(
+                        0,
+                        CONFIG.MAX_MESSAGE_LENGTH
+                    );
+
+                counter.textContent =
+                    CONFIG.MAX_MESSAGE_LENGTH
+                        .toLocaleString();
+            }
+        }
+    );
+
+
+    const clearButton =
+        $("#clearMessage");
+
+    if (clearButton) {
+
+        clearButton.addEventListener(
+            "click",
+            () => {
+
+                textarea.value = "";
+
+                counter.textContent =
+                    "0";
+
+                resetResult("message");
+            }
+        );
+    }
+
+
+    const scanButton =
+        $("#scanMessageButton");
+
+    if (scanButton) {
+
+        scanButton.addEventListener(
+            "click",
+            analyzeMessage
+        );
+    }
+}
+
+
+/* ============================================================
+   MESSAGE ANALYSIS
+   ============================================================ */
+
+async function analyzeMessage() {
+
+    const messageInput =
+        $("#messageInput");
+
+    const messageType =
+        $("#messageType");
+
+    const message =
+        messageInput.value.trim();
+
+    if (!message) {
+
+        showToast(
+            "Message required",
+            "Paste a message before starting the analysis.",
+            "error"
+        );
+
+        messageInput.focus();
+
+        return;
+    }
+
+
+    if (
+        message.length >
+        CONFIG.MAX_MESSAGE_LENGTH
+    ) {
+
+        showToast(
+            "Message too long",
+            "Please keep the message within the supported input limit.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "message",
+        "PROCESSING"
+    );
+
+    showLoading(
+        "Analysing message",
+        "CyberGuard is checking the message for phishing indicators."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
         }
 
 
         /*
-         * DataTransfer lets us place the dropped file
-         * into the normal file input.
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * message: string
          */
 
-        const dataTransfer =
-            new DataTransfer();
-
-        dataTransfer.items.add(file);
-
-        qrInput.files =
-            dataTransfer.files;
-
-
-        fileSelected.textContent =
-            `Selected: ${file.name}`;
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.MESSAGE,
+                {
+                    message: message
+                }
+            );
 
 
-        analyzeQRButton.disabled = false;
+        console.log(
+            "[CyberGuard] Message result:",
+            result
+        );
 
-    }
-);
+
+        renderAnalysisResult(
+            "message",
+            result.data,
+            {
+                inputType:
+                    messageType.value,
+
+                originalInput:
+                    message
+            }
+        );
 
 
-// =======================================================
-// LOADING STATE
-// =======================================================
-
-function setLoading(
-    loading,
-    type = ""
-) {
-
-    reportError.classList.remove("active");
-
-    if (loading) {
-
-        reportLoading.classList.add("active");
-
-        reportContent.style.display = "none";
-
-        reportBadge.textContent = "ANALYSING";
-        reportBadge.className =
-            "report-badge neutral";
-
-        reportType.textContent = type;
-
-        reportCard.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
+        addHistoryEntry({
+            type: "Message",
+            input:
+                `${messageType.value} analysis`,
+            result:
+                summarizeResult(result.data)
         });
 
-    } else {
 
-        reportLoading.classList.remove("active");
+        showToast(
+            "Analysis complete",
+            "The message has been processed by the CyberGuard engine.",
+            "success"
+        );
 
-        reportContent.style.display = "block";
 
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] Message analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "message",
+            error
+        );
+
+        showToast(
+            "Analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
     }
-
 }
 
 
-// =======================================================
-// ERROR
-// =======================================================
+/* ============================================================
+   URL CONTROLS
+   ============================================================ */
 
-function showError(message) {
+function initializeUrlControls() {
 
-    reportLoading.classList.remove("active");
+    $$("[data-url-mode]").forEach(
+        button => {
 
-    reportContent.style.display = "none";
+            button.addEventListener(
+                "click",
+                () => {
 
-    reportError.textContent = message;
+                    state.currentUrlMode =
+                        button.dataset.urlMode;
 
-    reportError.classList.add("active");
+                    $$("[data-url-mode]").forEach(
+                        modeButton => {
 
-    reportBadge.textContent = "ERROR";
+                            modeButton.classList.toggle(
+                                "active",
+                                modeButton.dataset.urlMode ===
+                                state.currentUrlMode
+                            );
+                        }
+                    );
 
-    reportBadge.className =
-        "report-badge danger";
-
-    reportType.textContent =
-        "ANALYSIS FAILED";
-
-
-    reportCard.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
-
-}
-
-
-// =======================================================
-// RESET REPORT
-// =======================================================
-
-function resetReport() {
-
-    reportLoading.classList.remove("active");
-
-    reportError.classList.remove("active");
-
-    reportContent.style.display = "block";
-
-
-    reportBadge.textContent =
-        "WAITING";
-
-    reportBadge.className =
-        "report-badge neutral";
-
-
-    reportType.textContent =
-        "WAITING";
-
-
-    resultStatus.textContent =
-        "Awaiting analysis";
-
-    resultRisk.textContent =
-        "—";
-
-    resultScore.textContent =
-        "— / 100";
-
-    resultPrediction.textContent =
-        "—";
-
-    resultConfidence.textContent =
-        "—";
-
-    resultIndicators.textContent =
-        "None detected";
-
-    resultCategories.textContent =
-        "None detected";
-
-    resultImpersonation.textContent =
-        "None detected";
-
-    resultRecommendation.textContent =
-        "No analysis available.";
-
-
-    decodedContentWrapper.style.display =
-        "none";
-
-    decodedContent.textContent =
-        "";
-
-}
-
-
-// =======================================================
-// EXTRACT GRADIO RESULT
-// =======================================================
-
-function extractResult(result) {
-
-    /*
-     * Gradio normally returns:
-     *
-     * {
-     *     data: [...]
-     * }
-     *
-     * The Space currently exposes a JSON output,
-     * so the actual object can be inside data[0].
-     */
-
-
-    if (!result) {
-        return {};
-    }
-
-
-    let data =
-        result.data;
-
-
-    if (Array.isArray(data)) {
-
-        if (data.length === 1) {
-
-            data = data[0];
-
+                    updateUrlModeUI();
+                }
+            );
         }
-
-    }
-
-
-    /*
-     * Sometimes a JSON component may arrive
-     * as a string. Try to parse it.
-     */
-
-    if (typeof data === "string") {
-
-        try {
-
-            return JSON.parse(data);
-
-        } catch {
-
-            return {
-                message: data
-            };
-
-        }
-
-    }
-
-
-    if (
-        data &&
-        typeof data === "object"
-    ) {
-
-        return data;
-
-    }
-
-
-    return {
-        result: data
-    };
-
-}
-
-
-// =======================================================
-// DISPLAY REPORT
-// =======================================================
-
-function displayReport(
-    rawData,
-    type
-) {
-
-    const data =
-        normaliseResult(rawData);
-
-
-    reportLoading.classList.remove("active");
-
-    reportError.classList.remove("active");
-
-    reportContent.style.display =
-        "block";
-
-
-    reportType.textContent =
-        type;
-
-
-    resultStatus.textContent =
-        data.status || "Analysis completed";
-
-
-    resultRisk.textContent =
-        data.risk_level || "Unknown";
-
-
-    resultScore.textContent =
-        formatScore(data.risk_score);
-
-
-    resultPrediction.textContent =
-        formatValue(data.model_prediction);
-
-
-    resultConfidence.textContent =
-        formatConfidence(data.model_confidence);
-
-
-    resultIndicators.textContent =
-        formatCollection(data.indicators);
-
-
-    resultCategories.textContent =
-        formatCollection(data.categories);
-
-
-    resultImpersonation.textContent =
-        formatCollection(data.impersonation);
-
-
-    resultRecommendation.textContent =
-        data.recommendation ||
-        "No additional recommendation provided.";
-
-
-    /*
-     * If QR analysis or another endpoint gives
-     * decoded content, show it.
-     */
-
-    const decoded =
-        data.decoded_content ||
-        data.decoded_text ||
-        data.payload;
-
-
-    if (
-        decoded &&
-        typeof decoded === "string"
-    ) {
-
-        decodedContentWrapper.style.display =
-            "block";
-
-        decodedContent.textContent =
-            decoded;
-
-    } else {
-
-        decodedContentWrapper.style.display =
-            "none";
-
-        decodedContent.textContent =
-            "";
-
-    }
-
-
-    updateRiskBadge(
-        data.risk_level,
-        data.model_prediction
     );
 
 
-    reportCard.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
+    const urlButton =
+        $("#scanUrlButton");
 
-}
+    if (urlButton) {
 
-
-// =======================================================
-// NORMALISE BACKEND RESPONSE
-// =======================================================
-
-function normaliseResult(data) {
-
-    /*
-     * Your existing engine uses fields such as:
-     *
-     * status
-     * risk_level
-     * risk_score
-     * model_prediction
-     * model_confidence
-     * indicator_score
-     * high_risk_combinations
-     * detected_categories
-     * recommendation
-     *
-     * We preserve those names here.
-     */
-
-
-    if (!data || typeof data !== "object") {
-
-        return {
-            status: "Analysis completed"
-        };
-
+        urlButton.addEventListener(
+            "click",
+            analyzeUrl
+        );
     }
 
 
-    return {
+    const urlInput =
+        $("#urlInput");
 
-        status:
-            data.status ||
-            "Analysis completed",
+    if (urlInput) {
+
+        urlInput.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    event.preventDefault();
+
+                    analyzeUrl();
+                }
+            }
+        );
+    }
+}
 
 
-        risk_level:
-            data.risk_level ||
-            data.risk ||
-            "Unknown",
+function updateUrlModeUI() {
+
+    const urlInput =
+        $("#urlInput");
+
+    if (!urlInput) {
+        return;
+    }
 
 
-        risk_score:
-            data.risk_score ??
-            data.score ??
+    if (
+        state.currentUrlMode ===
+        "website"
+    ) {
+
+        urlInput.placeholder =
+            "https://example.com/login";
+
+    } else {
+
+        urlInput.placeholder =
+            "https://suspicious-domain.example/login";
+    }
+}
+
+
+/* ============================================================
+   URL ANALYSIS
+   ============================================================ */
+
+async function analyzeUrl() {
+
+    const urlInput =
+        $("#urlInput");
+
+    const url =
+        urlInput.value.trim();
+
+
+    if (!url) {
+
+        showToast(
+            "URL required",
+            "Enter a website or URL before starting the analysis.",
+            "error"
+        );
+
+        urlInput.focus();
+
+        return;
+    }
+
+
+    if (!isValidUrl(url)) {
+
+        showToast(
+            "Invalid URL",
+            "Please enter a complete URL such as https://example.com.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "url",
+        "PROCESSING"
+    );
+
+    showLoading(
+        state.currentUrlMode === "website"
+            ? "Analysing website"
+            : "Analysing URL",
+        "CyberGuard is checking the destination for suspicious indicators."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
+        }
+
+
+        /*
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * url: string
+         */
+
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.WEBSITE,
+                {
+                    url: url
+                }
+            );
+
+
+        console.log(
+            "[CyberGuard] URL result:",
+            result
+        );
+
+
+        renderAnalysisResult(
+            "url",
+            result.data,
+            {
+                originalInput:
+                    url,
+
+                inputType:
+                    state.currentUrlMode === "website"
+                        ? "Fraudulent Website"
+                        : "Malicious / Deceptive URL"
+            }
+        );
+
+
+        addHistoryEntry({
+            type:
+                state.currentUrlMode === "website"
+                    ? "Website"
+                    : "URL",
+
+            input:
+                url,
+
+            result:
+                summarizeResult(result.data)
+        });
+
+
+        showToast(
+            "Analysis complete",
+            "The destination has been processed by the CyberGuard engine.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] URL analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "url",
+            error
+        );
+
+        showToast(
+            "Analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
+    }
+}
+
+
+/* ============================================================
+   URL VALIDATION
+   ============================================================ */
+
+function isValidUrl(value) {
+
+    try {
+
+        const url =
+            new URL(value);
+
+        return (
+            url.protocol === "http:" ||
+            url.protocol === "https:"
+        );
+
+    } catch {
+
+        return false;
+    }
+}
+
+
+/* ============================================================
+   QR CONTROLS
+   ============================================================ */
+
+function initializeQrControls() {
+
+    const fileInput =
+        $("#qrInput");
+
+    const chooseButton =
+        $("#chooseQrButton");
+
+    const dropZone =
+        $("#qrDropZone");
+
+    const removeButton =
+        $("#removeQrFile");
+
+    const scanButton =
+        $("#scanQrButton");
+
+
+    if (
+        !fileInput ||
+        !dropZone
+    ) {
+
+        return;
+    }
+
+
+    chooseButton.addEventListener(
+        "click",
+        () => {
+
+            fileInput.click();
+        }
+    );
+
+
+    fileInput.addEventListener(
+        "change",
+        () => {
+
+            if (
+                fileInput.files &&
+                fileInput.files[0]
+            ) {
+
+                setQrFile(
+                    fileInput.files[0]
+                );
+            }
+        }
+    );
+
+
+    [
+        "dragenter",
+        "dragover"
+    ].forEach(
+        eventName => {
+
+            dropZone.addEventListener(
+                eventName,
+                event => {
+
+                    event.preventDefault();
+
+                    dropZone.classList.add(
+                        "dragover"
+                    );
+                }
+            );
+        }
+    );
+
+
+    [
+        "dragleave",
+        "drop"
+    ].forEach(
+        eventName => {
+
+            dropZone.addEventListener(
+                eventName,
+                event => {
+
+                    event.preventDefault();
+
+                    dropZone.classList.remove(
+                        "dragover"
+                    );
+                }
+            );
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "drop",
+        event => {
+
+            const files =
+                event.dataTransfer.files;
+
+            if (
+                files &&
+                files[0]
+            ) {
+
+                setQrFile(
+                    files[0]
+                );
+            }
+        }
+    );
+
+
+    removeButton.addEventListener(
+        "click",
+        clearQrFile
+    );
+
+
+    scanButton.addEventListener(
+        "click",
+        analyzeQr
+    );
+}
+
+
+/* ============================================================
+   SET QR FILE
+   ============================================================ */
+
+function setQrFile(file) {
+
+    if (!file) {
+        return;
+    }
+
+
+    if (
+        !file.type.startsWith("image/")
+    ) {
+
+        showToast(
+            "Invalid file",
+            "Please select a PNG, JPG or WEBP image.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (
+        file.size >
+        CONFIG.MAX_QR_SIZE
+    ) {
+
+        showToast(
+            "File too large",
+            "Please choose an image smaller than 10 MB.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    state.selectedQrFile =
+        file;
+
+
+    $("#qrFileName").textContent =
+        file.name;
+
+    $("#qrFileSize").textContent =
+        formatFileSize(file.size);
+
+
+    $("#selectedQrFile")
+        .classList.remove(
+            "hidden"
+        );
+
+
+    $("#scanQrButton")
+        .disabled =
+        false;
+}
+
+
+/* ============================================================
+   CLEAR QR
+   ============================================================ */
+
+function clearQrFile() {
+
+    state.selectedQrFile =
+        null;
+
+    const input =
+        $("#qrInput");
+
+    if (input) {
+        input.value = "";
+    }
+
+    $("#selectedQrFile")
+        .classList.add(
+            "hidden"
+        );
+
+    $("#scanQrButton")
+        .disabled =
+        true;
+
+    resetResult("qr");
+}
+
+
+/* ============================================================
+   QR ANALYSIS
+   ============================================================ */
+
+async function analyzeQr() {
+
+    const file =
+        state.selectedQrFile;
+
+
+    if (!file) {
+
+        showToast(
+            "QR image required",
+            "Upload a QR code image before starting the analysis.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    setResultState(
+        "qr",
+        "PROCESSING"
+    );
+
+    showLoading(
+        "Scanning QR code",
+        "CyberGuard is processing the uploaded QR image."
+    );
+
+
+    try {
+
+        const client =
+            await ensureGradioClient();
+
+        if (!client) {
+
+            throw new Error(
+                "CyberGuard engine is unavailable."
+            );
+        }
+
+
+        if (
+            typeof state.gradioHandleFile !==
+            "function"
+        ) {
+
+            throw new Error(
+                "The Gradio file handler could not be loaded."
+            );
+        }
+
+
+        /*
+         * The endpoint shown in the user's Hugging Face
+         * API documentation accepts:
+         *
+         * image: File / Blob / Buffer
+         *
+         * handle_file() converts the browser File
+         * into the appropriate Gradio file input.
+         */
+
+        const result =
+            await client.predict(
+                CONFIG.ENDPOINTS.QR,
+                {
+                    image:
+                        state.gradioHandleFile(
+                            file
+                        )
+                }
+            );
+
+
+        console.log(
+            "[CyberGuard] QR result:",
+            result
+        );
+
+
+        renderAnalysisResult(
+            "qr",
+            result.data,
+            {
+                inputType:
+                    "QR Code",
+
+                originalInput:
+                    file.name
+            }
+        );
+
+
+        addHistoryEntry({
+            type:
+                "QR Code",
+
+            input:
+                file.name,
+
+            result:
+                summarizeResult(result.data)
+        });
+
+
+        showToast(
+            "QR analysis complete",
+            "The QR image has been processed by the CyberGuard engine.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[CyberGuard] QR analysis failed:",
+            error
+        );
+
+        renderAnalysisError(
+            "qr",
+            error
+        );
+
+        showToast(
+            "QR analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+
+    } finally {
+
+        hideLoading();
+    }
+}
+
+
+/* ============================================================
+   ENSURE GRADIO CLIENT
+   ============================================================ */
+
+async function ensureGradioClient() {
+
+    if (
+        state.gradioClient
+    ) {
+
+        return state.gradioClient;
+    }
+
+
+    return await initializeGradioClient();
+}
+
+
+/* ============================================================
+   RESULT STATE
+   ============================================================ */
+
+function setResultState(
+    type,
+    status
+) {
+
+    const stateElement =
+        $(`#${type}ResultState`);
+
+    if (!stateElement) {
+        return;
+    }
+
+
+    stateElement.className =
+        "result-state";
+
+
+    if (
+        status ===
+        "PROCESSING"
+    ) {
+
+        stateElement.classList.add(
+            "processing"
+        );
+    }
+
+
+    if (
+        status ===
+        "COMPLETE"
+    ) {
+
+        stateElement.classList.add(
+            "success"
+        );
+    }
+
+
+    if (
+        status ===
+        "ERROR"
+    ) {
+
+        stateElement.classList.add(
+            "danger"
+        );
+    }
+
+
+    stateElement.textContent =
+        status;
+}
+
+
+/* ============================================================
+   RENDER ANALYSIS RESULT
+   ============================================================ */
+
+function renderAnalysisResult(
+    type,
+    rawData,
+    metadata = {}
+) {
+
+    const normalized =
+        normalizeResult(
+            rawData
+        );
+
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+
+    if (empty) {
+        empty.classList.add(
+            "hidden"
+        );
+    }
+
+    if (content) {
+        content.classList.remove(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "COMPLETE"
+    );
+
+
+    const risk =
+        determineRisk(
+            normalized
+        );
+
+
+    const indicator =
+        $(`#${type}RiskIndicator`);
+
+    const label =
+        $(`#${type}RiskLabel`);
+
+
+    if (indicator) {
+
+        indicator.className =
+            "risk-indicator";
+
+        indicator.classList.add(
+            risk.className
+        );
+    }
+
+
+    if (label) {
+
+        label.textContent =
+            risk.label;
+    }
+
+
+    const title =
+        $(`#${type}ThreatTitle`);
+
+    if (title) {
+
+        title.textContent =
+            risk.title;
+    }
+
+
+    const description =
+        $(`#${type}ThreatDescription`);
+
+    if (description) {
+
+        description.textContent =
+            risk.description;
+    }
+
+
+    const confidence =
+        $(`#${type}Confidence`);
+
+    if (
+        confidence &&
+        normalized.confidence !== null
+    ) {
+
+        confidence.textContent =
+            formatConfidence(
+                normalized.confidence
+            );
+    }
+
+
+    const inputType =
+        $(`#${type}InputType`);
+
+    if (
+        inputType &&
+        metadata.inputType
+    ) {
+
+        inputType.textContent =
+            metadata.inputType;
+    }
+
+
+    const indicators =
+        $(`#${type}Indicators`);
+
+    if (indicators) {
+
+        indicators.innerHTML = "";
+
+        const items =
+            buildIndicators(
+                normalized
+            );
+
+        items.forEach(
+            item => {
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+                element.className =
+                    "indicator";
+
+                element.textContent =
+                    item;
+
+                indicators.appendChild(
+                    element
+                );
+            }
+        );
+    }
+
+
+    const analysedUrl =
+        $("#analysedUrl");
+
+    if (
+        type === "url" &&
+        analysedUrl &&
+        metadata.originalInput
+    ) {
+
+        analysedUrl.textContent =
+            metadata.originalInput;
+    }
+
+
+    const raw =
+        $(`#${type}Raw`);
+
+    if (raw) {
+
+        raw.textContent =
+            safePrettyPrint(
+                rawData
+            );
+    }
+
+
+    /*
+     * The engine may return a different structure depending
+     * on how cyberphishing_engine.py formats its output.
+     * We therefore preserve the complete raw response while
+     * extracting common fields where possible.
+     */
+
+    console.log(
+        `[CyberGuard] Normalized ${type} result:`,
+        normalized
+    );
+}
+
+
+/* ============================================================
+   NORMALIZE RESULT
+   ============================================================ */
+
+function normalizeResult(data) {
+
+    let value =
+        unwrapGradioData(
+            data
+        );
+
+
+    if (
+        typeof value ===
+        "string"
+    ) {
+
+        const parsed =
+            tryParseJson(
+                value
+            );
+
+        if (parsed !== null) {
+
+            value =
+                parsed;
+        }
+    }
+
+
+    const result = {
+
+        raw:
+            value,
+
+        label:
             null,
 
-
-        model_prediction:
-            data.model_prediction ||
-            data.prediction ||
+        confidence:
             null,
-
-
-        model_confidence:
-            data.model_confidence ??
-            data.confidence ??
-            null,
-
 
         indicators:
-            data.indicators ||
-            data.detected_indicators ||
-            data.high_risk_combinations ||
             [],
 
-
-        categories:
-            data.detected_categories ||
-            data.threat_categories ||
-            data.categories ||
-            {},
-
-
-        impersonation:
-            data.possible_impersonation ||
-            data.impersonation ||
-            data.impersonated_brands ||
-            [],
-
-
-        recommendation:
-            data.recommendation ||
-            data.organisation_recommendation ||
-            data.organization_recommendation ||
+        message:
             null,
 
-
-        decoded_content:
-            data.decoded_content ||
-            data.decoded_text ||
-            data.qr_content ||
-            null,
-
-
-        payload:
-            data.payload ||
+        threat:
             null
-
     };
 
-}
-
-
-// =======================================================
-// FORMAT SCORE
-// =======================================================
-
-function formatScore(score) {
-
-    if (
-        score === null ||
-        score === undefined ||
-        score === ""
-    ) {
-
-        return "— / 100";
-
-    }
-
-
-    const numeric =
-        Number(score);
-
-
-    if (Number.isNaN(numeric)) {
-
-        return `${score} / 100`;
-
-    }
-
-
-    return `${Math.round(numeric)} / 100`;
-
-}
-
-
-// =======================================================
-// FORMAT CONFIDENCE
-// =======================================================
-
-function formatConfidence(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-
-        return "—";
-
-    }
-
-
-    const numeric =
-        Number(value);
-
-
-    if (Number.isNaN(numeric)) {
-
-        return String(value);
-
-    }
-
-
-    /*
-     * Backend may already return 0–100.
-     */
-
-    if (numeric <= 1) {
-
-        return `${Math.round(numeric * 100)}%`;
-
-    }
-
-
-    return `${Math.round(numeric)}%`;
-
-}
-
-
-// =======================================================
-// FORMAT GENERIC VALUE
-// =======================================================
-
-function formatValue(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-
-        return "—";
-
-    }
-
-
-    if (
-        typeof value === "object"
-    ) {
-
-        return Object.entries(value)
-            .map(
-                ([key, val]) =>
-                    `${key}: ${val}`
-            )
-            .join(", ");
-
-    }
-
-
-    return String(value);
-
-}
-
-
-// =======================================================
-// FORMAT COLLECTION
-// =======================================================
-
-function formatCollection(value) {
 
     if (
         value === null ||
         value === undefined
     ) {
 
-        return "None detected";
+        return result;
+    }
 
+
+    if (
+        typeof value ===
+        "string"
+    ) {
+
+        result.message =
+            value;
+
+        result.label =
+            value;
+
+        return result;
     }
 
 
@@ -1122,217 +1699,1744 @@ function formatCollection(value) {
         Array.isArray(value)
     ) {
 
-        if (value.length === 0) {
+        result.indicators =
+            flattenStrings(
+                value
+            );
 
-            return "None detected";
+        const firstObject =
+            value.find(
+                item =>
+                    item &&
+                    typeof item ===
+                    "object"
+            );
 
+        if (firstObject) {
+
+            mergeObjectFields(
+                result,
+                firstObject
+            );
         }
 
-
-        return value
-            .map(item => {
-
-                if (
-                    typeof item === "object"
-                ) {
-
-                    return Object.entries(item)
-                        .map(
-                            ([key, val]) =>
-                                `${key}: ${val}`
-                        )
-                        .join(", ");
-
-                }
-
-                return String(item);
-
-            })
-            .join(" • ");
-
+        return result;
     }
 
 
     if (
-        typeof value === "object"
+        typeof value ===
+        "object"
     ) {
 
-        const entries =
-            Object.entries(value);
+        mergeObjectFields(
+            result,
+            value
+        );
 
-
-        if (entries.length === 0) {
-
-            return "None detected";
-
-        }
-
-
-        return entries
-            .map(
-                ([key, val]) =>
-                    `${key}: ${formatValue(val)}`
-            )
-            .join(" • ");
-
+        return result;
     }
 
 
-    return String(value);
+    result.message =
+        String(value);
 
+    return result;
 }
 
 
-// =======================================================
-// RISK BADGE
-// =======================================================
+/* ============================================================
+   MERGE OBJECT FIELDS
+   ============================================================ */
 
-function updateRiskBadge(
-    riskLevel,
-    prediction
+function mergeObjectFields(
+    result,
+    object
 ) {
 
-    const risk =
-        String(
-            riskLevel || ""
-        ).toLowerCase();
+    const labelKeys = [
+
+        "label",
+        "prediction",
+        "predicted_label",
+        "class",
+        "category",
+        "result",
+        "status",
+        "risk",
+        "threat"
+    ];
 
 
-    const model =
-        String(
-            prediction || ""
-        ).toLowerCase();
-
-
-    reportBadge.className =
-        "report-badge";
-
-
-    /*
-     * High-risk / phishing
-     */
-
-    if (
-        risk.includes("high") ||
-        risk.includes("critical") ||
-        model.includes("phish") ||
-        model.includes("malicious")
+    for (
+        const key of labelKeys
     ) {
 
-        reportBadge.textContent =
-            "THREAT";
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
 
-        reportBadge.classList.add(
-            "danger"
-        );
+            if (
+                typeof object[key] !==
+                "object"
+            ) {
 
-        return;
+                result.label =
+                    String(
+                        object[key]
+                    );
 
+                break;
+            }
+        }
     }
 
 
-    /*
-     * Medium / suspicious
-     */
+    const confidenceKeys = [
 
-    if (
-        risk.includes("medium") ||
-        risk.includes("suspicious") ||
-        risk.includes("moderate")
+        "confidence",
+        "score",
+        "probability",
+        "risk_score",
+        "phishing_probability"
+    ];
+
+
+    for (
+        const key of confidenceKeys
     ) {
 
-        reportBadge.textContent =
-            "SUSPICIOUS";
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
 
-        reportBadge.classList.add(
-            "warning"
-        );
+            const number =
+                Number(
+                    object[key]
+                );
 
-        return;
+            if (
+                Number.isFinite(number)
+            ) {
 
+                result.confidence =
+                    number;
+
+                break;
+            }
+        }
     }
 
 
-    /*
-     * Low / benign
-     */
+    const indicatorKeys = [
 
-    if (
-        risk.includes("low") ||
-        risk.includes("safe") ||
-        model.includes("benign")
+        "indicators",
+        "features",
+        "reasons",
+        "signals",
+        "findings",
+        "detections",
+        "recommendations"
+    ];
+
+
+    for (
+        const key of indicatorKeys
     ) {
 
-        reportBadge.textContent =
-            "LOW RISK";
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
 
-        reportBadge.classList.add(
-            "safe"
-        );
-
-        return;
-
+            result.indicators.push(
+                ...flattenStrings(
+                    object[key]
+                )
+            );
+        }
     }
 
 
-    reportBadge.textContent =
-        "ANALYSED";
+    const messageKeys = [
 
-    reportBadge.classList.add(
-        "neutral"
+        "message",
+        "explanation",
+        "description",
+        "details",
+        "analysis"
+    ];
+
+
+    for (
+        const key of messageKeys
+    ) {
+
+        if (
+            typeof object[key] ===
+            "string"
+        ) {
+
+            result.message =
+                object[key];
+
+            break;
+        }
+    }
+
+
+    if (!result.threat) {
+
+        result.threat =
+            result.label;
+    }
+}
+
+
+/* ============================================================
+   UNWRAP GRADIO DATA
+   ============================================================ */
+
+function unwrapGradioData(data) {
+
+    let value =
+        data;
+
+
+    /*
+     * Some Gradio functions return:
+     *
+     * [value]
+     *
+     * while others can return objects.
+     */
+
+    if (
+        Array.isArray(value) &&
+        value.length === 1
+    ) {
+
+        value =
+            value[0];
+    }
+
+
+    return value;
+}
+
+
+/* ============================================================
+   TRY JSON
+   ============================================================ */
+
+function tryParseJson(value) {
+
+    if (
+        typeof value !==
+        "string"
+    ) {
+
+        return null;
+    }
+
+
+    try {
+
+        return JSON.parse(
+            value
+        );
+
+    } catch {
+
+        return null;
+    }
+}
+
+
+/* ============================================================
+   FLATTEN STRINGS
+   ============================================================ */
+
+function flattenStrings(
+    value
+) {
+
+    const output = [];
+
+
+    function walk(item) {
+
+        if (
+            item === null ||
+            item === undefined
+        ) {
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "string"
+        ) {
+
+            const cleaned =
+                item.trim();
+
+            if (cleaned) {
+
+                output.push(
+                    cleaned
+                );
+            }
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "number" ||
+            typeof item ===
+            "boolean"
+        ) {
+
+            output.push(
+                String(item)
+            );
+
+            return;
+        }
+
+
+        if (
+            Array.isArray(item)
+        ) {
+
+            item.forEach(
+                walk
+            );
+
+            return;
+        }
+
+
+        if (
+            typeof item ===
+            "object"
+        ) {
+
+            Object.entries(
+                item
+            ).forEach(
+                ([key, val]) => {
+
+                    if (
+                        typeof val ===
+                        "string" ||
+                        typeof val ===
+                        "number" ||
+                        typeof val ===
+                        "boolean"
+                    ) {
+
+                        output.push(
+                            `${formatKey(key)}: ${val}`
+                        );
+
+                    } else {
+
+                        walk(val);
+                    }
+                }
+            );
+        }
+    }
+
+
+    walk(value);
+
+
+    return [
+        ...new Set(output)
+    ];
+}
+
+
+/* ============================================================
+   FORMAT KEY
+   ============================================================ */
+
+function formatKey(key) {
+
+    return String(key)
+        .replace(
+            /[_-]+/g,
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            char =>
+                char.toUpperCase()
+        );
+}
+
+
+/* ============================================================
+   DETERMINE RISK
+   ============================================================ */
+
+function determineRisk(
+    normalized
+) {
+
+    const text =
+        [
+            normalized.label,
+            normalized.message,
+            normalized.threat,
+            ...normalized.indicators
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+
+    const confidence =
+        normalized.confidence;
+
+
+    /*
+     * Explicit phishing / malicious indicators
+     */
+
+    const dangerWords = [
+
+        "phishing",
+        "malicious",
+        "malware",
+        "dangerous",
+        "fraudulent",
+        "suspicious",
+        "scam",
+        "unsafe",
+        "high risk",
+        "critical",
+        "attack",
+        "threat",
+        "credential theft"
+    ];
+
+
+    const safeWords = [
+
+        "benign",
+        "safe",
+        "legitimate",
+        "ham",
+        "clean",
+        "not phishing",
+        "no threat"
+    ];
+
+
+    const danger =
+        dangerWords.some(
+            word =>
+                text.includes(word)
+        );
+
+
+    const safe =
+        safeWords.some(
+            word =>
+                text.includes(word)
+        );
+
+
+    if (
+        danger &&
+        !safe
+    ) {
+
+        return {
+
+            className:
+                "danger",
+
+            label:
+                "HIGH RISK",
+
+            title:
+                "Suspicious activity detected",
+
+            description:
+                "The detection engine identified indicators associated with a potentially unsafe input."
+        };
+    }
+
+
+    if (
+        safe &&
+        !danger
+    ) {
+
+        return {
+
+            className:
+                "safe",
+
+            label:
+                "LOW RISK",
+
+            title:
+                "No major threat indicated",
+
+            description:
+                "The detection engine did not identify strong indicators of the targeted threat."
+        };
+    }
+
+
+    if (
+        confidence !== null
+    ) {
+
+        const normalizedConfidence =
+            normalizeConfidence(
+                confidence
+            );
+
+
+        if (
+            normalizedConfidence >=
+            0.75
+        ) {
+
+            return {
+
+                className:
+                    "danger",
+
+                label:
+                    "HIGH RISK",
+
+                title:
+                    "High-confidence detection",
+
+                description:
+                    "The engine returned a high-confidence threat classification."
+            };
+        }
+
+
+        if (
+            normalizedConfidence >=
+            0.45
+        ) {
+
+            return {
+
+                className:
+                    "warning",
+
+                label:
+                    "REVIEW",
+
+                title:
+                    "Further review recommended",
+
+                description:
+                    "The result contains signals that should be reviewed before treating the input as safe."
+            };
+        }
+
+
+        return {
+
+            className:
+                "safe",
+
+            label:
+                "LOW RISK",
+
+            title:
+                "Low-risk classification",
+
+            description:
+                "The engine returned a lower-risk classification for this input."
+        };
+    }
+
+
+    return {
+
+        className:
+            "warning",
+
+        label:
+            "REVIEW",
+
+        title:
+            "Analysis completed",
+
+        description:
+            "The engine returned a result. Review the detection output below before making a decision."
+    };
+}
+
+
+/* ============================================================
+   NORMALIZE CONFIDENCE
+   ============================================================ */
+
+function normalizeConfidence(
+    value
+) {
+
+    let number =
+        Number(value);
+
+
+    if (
+        !Number.isFinite(number)
+    ) {
+
+        return 0;
+    }
+
+
+    if (
+        number > 1 &&
+        number <= 100
+    ) {
+
+        number /=
+            100;
+    }
+
+
+    return Math.max(
+        0,
+        Math.min(
+            1,
+            number
+        )
+    );
+}
+
+
+/* ============================================================
+   FORMAT CONFIDENCE
+   ============================================================ */
+
+function formatConfidence(
+    value
+) {
+
+    return (
+        normalizeConfidence(
+            value
+        ) * 100
+    ).toFixed(1) + "%";
+}
+
+
+/* ============================================================
+   BUILD INDICATORS
+   ============================================================ */
+
+function buildIndicators(
+    normalized
+) {
+
+    const indicators =
+        [];
+
+
+    if (
+        normalized.label
+    ) {
+
+        indicators.push(
+            `Classification: ${normalized.label}`
+        );
+    }
+
+
+    if (
+        normalized.message
+    ) {
+
+        indicators.push(
+            normalized.message
+        );
+    }
+
+
+    normalized.indicators.forEach(
+        item => {
+
+            indicators.push(
+                item
+            );
+        }
     );
 
-}
 
+    if (
+        indicators.length === 0
+    ) {
 
-// =======================================================
-// ERROR MESSAGE HELPER
-// =======================================================
-
-function getErrorMessage(error) {
-
-    if (!error) {
-
-        return "The detection engine returned an unknown error.";
-
+        indicators.push(
+            "The engine returned a result. Expand the raw response below for the complete output."
+        );
     }
 
 
-    if (error.message) {
+    return [
+        ...new Set(
+            indicators
+        )
+    ].slice(
+        0,
+        12
+    );
+}
+
+
+/* ============================================================
+   RENDER ANALYSIS ERROR
+   ============================================================ */
+
+function renderAnalysisError(
+    type,
+    error
+) {
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+    if (empty) {
+
+        empty.classList.add(
+            "hidden"
+        );
+    }
+
+    if (content) {
+
+        content.classList.remove(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "ERROR"
+    );
+
+
+    const indicator =
+        $(`#${type}RiskIndicator`);
+
+    const label =
+        $(`#${type}RiskLabel`);
+
+    const title =
+        $(`#${type}ThreatTitle`);
+
+    const description =
+        $(`#${type}ThreatDescription`);
+
+
+    if (indicator) {
+
+        indicator.className =
+            "risk-indicator danger";
+    }
+
+
+    if (label) {
+
+        label.textContent =
+            "ERROR";
+    }
+
+
+    if (title) {
+
+        title.textContent =
+            "Analysis could not be completed";
+    }
+
+
+    if (description) {
+
+        description.textContent =
+            getErrorMessage(error);
+    }
+
+
+    const indicators =
+        $(`#${type}Indicators`);
+
+    if (indicators) {
+
+        indicators.innerHTML = "";
+
+        const element =
+            document.createElement(
+                "div"
+            );
+
+        element.className =
+            "indicator";
+
+        element.textContent =
+            "Check that the Hugging Face Space is running and that the endpoint is available.";
+
+        indicators.appendChild(
+            element
+        );
+    }
+
+
+    const raw =
+        $(`#${type}Raw`);
+
+    if (raw) {
+
+        raw.textContent =
+            error?.stack ||
+            String(error);
+    }
+}
+
+
+/* ============================================================
+   RESET RESULT
+   ============================================================ */
+
+function resetResult(
+    type
+) {
+
+    const empty =
+        $(`#${type}ResultEmpty`);
+
+    const content =
+        $(`#${type}ResultContent`);
+
+    if (empty) {
+
+        empty.classList.remove(
+            "hidden"
+        );
+    }
+
+    if (content) {
+
+        content.classList.add(
+            "hidden"
+        );
+    }
+
+
+    setResultState(
+        type,
+        "WAITING"
+    );
+}
+
+
+/* ============================================================
+   RAW TOGGLES
+   ============================================================ */
+
+function initializeRawToggles() {
+
+    $$(".raw-toggle").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const target =
+                        $(
+                            `#${button.dataset.target}`
+                        );
+
+                    if (!target) {
+                        return;
+                    }
+
+                    target.classList.toggle(
+                        "hidden"
+                    );
+
+
+                    const plus =
+                        button.querySelector(
+                            "span"
+                        );
+
+                    if (plus) {
+
+                        plus.textContent =
+                            target.classList.contains(
+                                "hidden"
+                            )
+                                ? "+"
+                                : "−";
+                    }
+                }
+            );
+        }
+    );
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+function showLoading(
+    title,
+    description
+) {
+
+    const overlay =
+        $("#loadingOverlay");
+
+    $("#loadingTitle").textContent =
+        title;
+
+    $("#loadingDescription").textContent =
+        description;
+
+    overlay.classList.remove(
+        "hidden"
+    );
+}
+
+
+function hideLoading() {
+
+    $("#loadingOverlay")
+        .classList.add(
+            "hidden"
+        );
+}
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+let toastTimer =
+    null;
+
+
+function showToast(
+    title,
+    message,
+    type = "success"
+) {
+
+    const toast =
+        $("#toast");
+
+    const icon =
+        $("#toastIcon");
+
+
+    $("#toastTitle").textContent =
+        title;
+
+    $("#toastMessage").textContent =
+        message;
+
+
+    if (
+        type === "error"
+    ) {
+
+        icon.textContent =
+            "!";
+
+        icon.style.color =
+            "var(--red)";
+
+        icon.style.background =
+            "rgba(239, 68, 68, 0.08)";
+
+    } else {
+
+        icon.textContent =
+            "✓";
+
+        icon.style.color =
+            "var(--green)";
+
+        icon.style.background =
+            "rgba(34, 197, 94, 0.08)";
+    }
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            4500
+        );
+}
+
+
+$("#toastClose")
+    ?.addEventListener(
+        "click",
+        () => {
+
+            $("#toast")
+                .classList.remove(
+                    "show"
+                );
+        }
+    );
+
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+
+function loadHistory() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                CONFIG.HISTORY_KEY
+            );
+
+        if (saved) {
+
+            state.history =
+                JSON.parse(
+                    saved
+                );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not load history:",
+            error
+        );
+
+        state.history =
+            [];
+    }
+
+
+    renderHistory();
+}
+
+
+function saveHistory() {
+
+    try {
+
+        localStorage.setItem(
+            CONFIG.HISTORY_KEY,
+            JSON.stringify(
+                state.history
+            )
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not save history:",
+            error
+        );
+    }
+}
+
+
+function addHistoryEntry(
+    entry
+) {
+
+    const historyEntry = {
+
+        id:
+            Date.now(),
+
+        type:
+            entry.type ||
+            "Analysis",
+
+        input:
+            entry.input ||
+            "",
+
+        result:
+            entry.result ||
+            "",
+
+        timestamp:
+            new Date().toISOString()
+    };
+
+
+    state.history.unshift(
+        historyEntry
+    );
+
+
+    state.history =
+        state.history.slice(
+            0,
+            30
+        );
+
+
+    saveHistory();
+
+    renderHistory();
+}
+
+
+function renderHistory() {
+
+    const container =
+        $("#historyList");
+
+    if (!container) {
+        return;
+    }
+
+
+    if (
+        state.history.length === 0
+    ) {
+
+        container.innerHTML = `
+
+            <div class="history-empty">
+
+                <div>◷</div>
+
+                <h4>
+                    No analysis history
+                </h4>
+
+                <p>
+                    Completed analyses will appear here.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        state.history
+            .map(
+                entry => {
+
+                    const icon =
+                        getHistoryIcon(
+                            entry.type
+                        );
+
+                    const time =
+                        formatDate(
+                            entry.timestamp
+                        );
+
+
+                    return `
+
+                        <div class="history-item">
+
+                            <div class="history-type">
+                                ${icon}
+                            </div>
+
+                            <div class="history-main">
+
+                                <strong>
+                                    ${escapeHtml(
+                                        entry.type
+                                    )}
+                                </strong>
+
+                                <p>
+                                    ${escapeHtml(
+                                        truncate(
+                                            entry.input,
+                                            100
+                                        )
+                                    )}
+                                </p>
+
+                            </div>
+
+                            <div class="history-time">
+                                ${escapeHtml(time)}
+                            </div>
+
+                        </div>
+
+                    `;
+                }
+            )
+            .join("");
+}
+
+
+function getHistoryIcon(
+    type
+) {
+
+    const icons = {
+
+        Message:
+            "✉",
+
+        URL:
+            "↗",
+
+        Website:
+            "◫",
+
+        "QR Code":
+            "▦"
+    };
+
+
+    return (
+        icons[type] ||
+        "⌁"
+    );
+}
+
+
+function formatDate(
+    timestamp
+) {
+
+    try {
+
+        return new Date(
+            timestamp
+        ).toLocaleString(
+            [],
+            {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    } catch {
+
+        return "Unknown";
+    }
+}
+
+
+/* ============================================================
+   CLEAR HISTORY
+   ============================================================ */
+
+const clearHistoryButton =
+    $("#clearHistoryButton");
+
+if (clearHistoryButton) {
+
+    clearHistoryButton.addEventListener(
+        "click",
+        () => {
+
+            if (
+                state.history.length === 0
+            ) {
+
+                showToast(
+                    "Nothing to clear",
+                    "There is no analysis history.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            state.history =
+                [];
+
+            saveHistory();
+
+            renderHistory();
+
+
+            showToast(
+                "History cleared",
+                "Analysis history has been removed from this browser.",
+                "success"
+            );
+        }
+    );
+}
+
+
+/* ============================================================
+   ORGANISATION SETTINGS
+   ============================================================ */
+
+function initializeOrganisationSettings() {
+
+    const saveButton =
+        $("#saveOrganisationButton");
+
+    const input =
+        $("#organisationInput");
+
+
+    if (
+        !saveButton ||
+        !input
+    ) {
+
+        return;
+    }
+
+
+    input.value =
+        state.organisation;
+
+
+    saveButton.addEventListener(
+        "click",
+        () => {
+
+            const value =
+                input.value.trim();
+
+
+            if (!value) {
+
+                showToast(
+                    "Organisation name required",
+                    "Enter an organisation name first.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            state.organisation =
+                value;
+
+
+            try {
+
+                localStorage.setItem(
+                    CONFIG.ORGANISATION_KEY,
+                    value
+                );
+
+            } catch (error) {
+
+                console.warn(
+                    "[CyberGuard] Organisation could not be saved:",
+                    error
+                );
+            }
+
+
+            updateOrganisationUI();
+
+
+            showToast(
+                "Organisation updated",
+                "CyberGuard interface context has been updated.",
+                "success"
+            );
+        }
+    );
+}
+
+
+function loadOrganisation() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                CONFIG.ORGANISATION_KEY
+            );
+
+        if (
+            saved &&
+            saved.trim()
+        ) {
+
+            state.organisation =
+                saved.trim();
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "[CyberGuard] Could not load organisation:",
+            error
+        );
+    }
+}
+
+
+function updateOrganisationUI() {
+
+    const topName =
+        $("#topOrganisationName");
+
+    const displayName =
+        $("#organisationDisplayName");
+
+    const input =
+        $("#organisationInput");
+
+
+    if (topName) {
+
+        topName.textContent =
+            state.organisation;
+    }
+
+
+    if (displayName) {
+
+        displayName.textContent =
+            state.organisation;
+    }
+
+
+    if (
+        input &&
+        document.activeElement !== input
+    ) {
+
+        input.value =
+            state.organisation;
+    }
+}
+
+
+/* ============================================================
+   UTILITY FUNCTIONS
+   ============================================================ */
+
+function safePrettyPrint(
+    value
+) {
+
+    try {
+
+        return JSON.stringify(
+            value,
+            null,
+            2
+        );
+
+    } catch {
+
+        return String(value);
+    }
+}
+
+
+function summarizeResult(
+    value
+) {
+
+    const normalized =
+        normalizeResult(
+            value
+        );
+
+
+    if (
+        normalized.label
+    ) {
+
+        return normalized.label;
+    }
+
+
+    if (
+        normalized.message
+    ) {
+
+        return truncate(
+            normalized.message,
+            100
+        );
+    }
+
+
+    return "Analysis completed";
+}
+
+
+function truncate(
+    value,
+    length
+) {
+
+    const string =
+        String(
+            value ||
+            ""
+        );
+
+
+    if (
+        string.length <=
+        length
+    ) {
+
+        return string;
+    }
+
+
+    return (
+        string.slice(
+            0,
+            length - 1
+        ) +
+        "…"
+    );
+}
+
+
+function formatFileSize(
+    bytes
+) {
+
+    if (
+        bytes <
+        1024
+    ) {
+
+        return `${bytes} B`;
+    }
+
+
+    if (
+        bytes <
+        1024 * 1024
+    ) {
+
+        return `${(
+            bytes /
+            1024
+        ).toFixed(1)} KB`;
+    }
+
+
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
+}
+
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ||
+        ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* ============================================================
+   ERROR MESSAGE
+   ============================================================ */
+
+function getErrorMessage(
+    error
+) {
+
+    if (
+        error &&
+        typeof error.message ===
+        "string"
+    ) {
 
         return error.message;
-
     }
 
 
-    return String(error);
-
+    return (
+        "The detection engine returned an unexpected error."
+    );
 }
 
 
-// =======================================================
-// INITIAL STATE
-// =======================================================
+/* ============================================================
+   MESSAGE TYPE DISPLAY
+   ============================================================ */
 
-resetReport();
+const messageType =
+    $("#messageType");
+
+if (messageType) {
+
+    messageType.addEventListener(
+        "change",
+        () => {
+
+            const textarea =
+                $("#messageInput");
+
+            if (!textarea) {
+                return;
+            }
 
 
-// =======================================================
-// OPTIONAL: CONNECT ON PAGE LOAD
-// =======================================================
+            const type =
+                messageType.value;
 
-/*
- * We intentionally don't block page loading if the
- * Hugging Face Space is waking up.
- *
- * The connection will happen when the user actually
- * runs an analysis.
- */
+
+            const placeholders = {
+
+                "Email":
+                    "Paste the suspicious email content here...",
+
+                "SMS / Message":
+                    "Paste the suspicious SMS or message here...",
+
+                "Social Media":
+                    "Paste the suspicious social-media message here..."
+            };
+
+
+            textarea.placeholder =
+                placeholders[type] ||
+                "Paste suspicious content here...";
+        }
+    );
+}
+
+
+/* ============================================================
+   KEYBOARD SHORTCUT
+   ============================================================ */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        /*
+         * Ctrl + K focuses the main phishing input.
+         */
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() === "k"
+        ) {
+
+            event.preventDefault();
+
+            navigateTo("phishing");
+
+            activateAnalysis("message");
+
+            $("#messageInput")
+                ?.focus();
+        }
+    }
+);
+
+
+/* ============================================================
+   DEVELOPMENT LOG
+   ============================================================ */
 
 console.log(
-    "CyberGuard frontend loaded."
+    "%cCYBERGUARD",
+    "font-size:20px;font-weight:800;color:#60a5fa;"
 );
 
 console.log(
-    `Backend: Hugging Face Space ${HF_SPACE}`
+    "%cOrganisation Security Platform",
+    "font-size:11px;color:#94a3b8;"
+);
+
+console.log(
+    "[CyberGuard] Frontend initialized."
+);
+
+console.log(
+    "[CyberGuard] Hugging Face Space:",
+    CONFIG.HF_SPACE
+);
+
+console.log(
+    "[CyberGuard] Endpoints:",
+    CONFIG.ENDPOINTS
 );
