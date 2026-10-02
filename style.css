@@ -1890,3 +1890,216 @@ footer {
     }
 
 }
+/* =====================================================
+   CYBERGUARD — ORGANISATION THREAT REPORT
+   Additional report formatting
+===================================================== */
+
+/* Better handling of long API-generated values */
+.report-item {
+    align-items: flex-start;
+}
+
+.report-item span:first-child {
+    flex: 0 0 180px;
+    padding-top: 2px;
+}
+
+.report-item span:last-child {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    text-align: right;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+
+/* Structured values such as detected categories */
+.report-value {
+    display: block;
+    color: var(--text-soft);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
+/* Multiple indicators / categories */
+.report-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    width: 100%;
+}
+
+.report-list-item {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--text-soft);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+
+/* API / analysis details */
+.analysis-details {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: #050607;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-soft);
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+
+/* Threat status variations */
+.risk-badge.safe {
+    color: #9ee66b;
+    border-color: rgba(158, 230, 107, 0.35);
+    background: rgba(158, 230, 107, 0.04);
+}
+
+.risk-badge.warning {
+    color: #ffd166;
+    border-color: rgba(255, 209, 102, 0.35);
+    background: rgba(255, 209, 102, 0.04);
+}
+
+.risk-badge.danger {
+    color: var(--danger);
+    border-color: rgba(255, 89, 100, 0.35);
+    background: rgba(255, 89, 100, 0.04);
+}
+
+
+/* Recommendation section */
+.report-recommendation {
+    margin: 18px 22px;
+    padding: 15px 16px;
+    border-left: 2px solid var(--accent);
+    background: rgba(216, 255, 62, 0.025);
+    color: var(--text-soft);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.report-recommendation strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--accent);
+    font-size: 9px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+}
+
+
+/* Organisation context / system label */
+.organisation-context {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 18px;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.organisation-context::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+
+/* Loading state */
+.report-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-soft);
+    font-size: 12px;
+}
+
+.report-loading::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(216, 255, 62, 0.5);
+    animation: cyberPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cyberPulse {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+/* =====================================================
+   MOBILE REPORT FIX
+===================================================== */
+
+@media (max-width: 700px) {
+
+    .report-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 15px 18px;
+    }
+
+    .report-item span:first-child {
+        flex: none;
+        padding-top: 0;
+    }
+
+    .report-item span:last-child {
+        width: 100%;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .report-list {
+        align-items: stretch;
+    }
+
+    .report-list-item {
+        text-align: left;
+    }
+
+    .report-recommendation {
+        margin: 15px 18px;
+    }
+}
