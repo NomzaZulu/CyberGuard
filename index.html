@@ -1654,13 +1654,13 @@
                             <div class="takeover-info">
                                 <span class="takeover-info-icon">i</span>
                                 <p>
-                                    Upload JSON telemetry files. CyberGuard checks six takeover indicators: failed logins, password spraying, unusual locations, unknown devices, suspicious sessions and sudden behaviour changes.
+                                    Upload CSV telemetry files. CyberGuard checks six takeover indicators: failed logins, password spraying, unusual locations, unknown devices, suspicious sessions and sudden behaviour changes.
                                 </p>
                             </div>
 
                             <div class="field">
                                 <div class="field-label-row">
-                                    <label>EVENT TELEMETRY — JSON ARRAY</label>
+                                    <label>EVENT TELEMETRY — CSV FILE</label>
                                     <button class="clear-button" id="clearTakeoverEvents" type="button">Clear</button>
                                 </div>
 
@@ -1668,7 +1668,7 @@
                                     type="file"
                                     id="takeoverEventsInput"
                                     class="takeover-file-input"
-                                    accept=".json,application/json"
+                                    accept=".csv,text/csv"
                                     hidden
                                 >
 
@@ -1678,9 +1678,9 @@
                                     id="takeoverEventsUploadBox"
                                 >
                                     <span class="takeover-upload-icon">↑</span>
-                                    <span class="takeover-upload-title">Upload event telemetry JSON</span>
-                                    <span class="takeover-upload-subtitle">Choose a .json file containing an array of authentication events</span>
-                                    <span class="takeover-upload-button">Choose JSON File</span>
+                                    <span class="takeover-upload-title">Upload event telemetry CSV</span>
+                                    <span class="takeover-upload-subtitle">Choose a .csv file containing authentication events</span>
+                                    <span class="takeover-upload-button">Choose CSV File</span>
                                     <span class="takeover-file-name" id="takeoverEventsFileName">No file selected</span>
                                 </label>
                             </div>
@@ -1688,7 +1688,7 @@
                             <div class="takeover-field-grid">
                                 <div class="field">
                                     <div class="field-label-row">
-                                        <label>OPTIONAL USER PROFILES — JSON ARRAY</label>
+                                        <label>OPTIONAL USER PROFILES — CSV FILE</label>
                                         <button class="clear-button" id="clearTakeoverProfiles" type="button">Clear</button>
                                     </div>
 
@@ -1696,7 +1696,7 @@
                                         type="file"
                                         id="takeoverProfilesInput"
                                         class="takeover-file-input"
-                                        accept=".json,application/json"
+                                        accept=".csv,text/csv"
                                         hidden
                                     >
 
@@ -1706,9 +1706,9 @@
                                         id="takeoverProfilesUploadBox"
                                     >
                                         <span class="takeover-upload-icon">↑</span>
-                                        <span class="takeover-upload-title">Upload user profiles JSON</span>
+                                        <span class="takeover-upload-title">Upload user profiles CSV</span>
                                         <span class="takeover-upload-subtitle">Optional baseline locations and known devices</span>
-                                        <span class="takeover-upload-button">Choose JSON File</span>
+                                        <span class="takeover-upload-button">Choose CSV File</span>
                                         <span class="takeover-file-name" id="takeoverProfilesFileName">No file selected</span>
                                     </label>
                                 </div>
@@ -1719,7 +1719,7 @@
                                         <span>timestamp</span><span>user_id</span><span>login_status</span>
                                         <span>ip_address</span><span>location</span><span>device</span><span>session_action</span>
                                     </div>
-                                    <p class="takeover-format-note">Files must contain a JSON array of objects. Profiles are optional.</p>
+                                    <p class="takeover-format-note">Files must be CSV files with a header row. Profiles are optional.</p>
                                 </div>
                             </div>
 
