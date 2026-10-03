@@ -14,17 +14,11 @@ HIGH_THRESHOLD = 70
 # ============================================================
 
 DETECTOR_WEIGHTS = {
-
     "Multiple Failed Login Attempts": 22,
-
     "Password Spraying": 28,
-
     "Unusual Login Location": 14,
-
     "Unknown / New Device": 14,
-
     "Suspicious Session Activity": 22,
-
     "Sudden Account Behaviour Change": 18
 }
 
@@ -36,28 +30,24 @@ DETECTOR_WEIGHTS = {
 def safe_int(value, default=0):
 
     try:
-
         if pd.isna(value):
             return default
 
         return int(float(value))
 
     except Exception:
-
         return default
 
 
 def safe_float(value, default=0.0):
 
     try:
-
         if pd.isna(value):
             return default
 
         return float(value)
 
     except Exception:
-
         return default
 
 
@@ -185,11 +175,9 @@ def calculate_detector_score(
         ).lower()
 
         if action == "privileged_action":
-
             evidence_bonus += 12
 
         elif action == "session_change":
-
             evidence_bonus += 4
 
     # --------------------------------------------------------
@@ -214,32 +202,25 @@ def calculate_detector_score(
         )
 
         if indicator_count >= 4:
-
             evidence_bonus += 10
 
         elif indicator_count >= 3:
-
             evidence_bonus += 7
 
         elif indicator_count >= 2:
-
             evidence_bonus += 4
 
         elif indicator_count >= 1:
-
             evidence_bonus += 2
 
     raw_score = (
-        base_score +
-        evidence_bonus
+        base_score
+        + evidence_bonus
     )
 
     return {
-
         "base_score": base_score,
-
         "evidence_bonus": evidence_bonus,
-
         "score_contribution": raw_score
     }
 
@@ -248,17 +229,10 @@ def calculate_detector_score(
 # REPETITION BONUS
 # ============================================================
 #
-# Multiple occurrences of the same detector should increase
-# confidence, but should NOT multiply the detector score.
+# Repeated detections from the same detector strengthen
+# confidence, but do NOT multiply the detector's score.
 #
-# This is intentionally capped.
-#
-# 1 occurrence  -> +0
-# 2 occurrences -> +3
-# 3 occurrences -> +5
-# 4 occurrences -> +7
-# 5+ occurrences -> +10 maximum
-#
+# Maximum repetition bonus = 10 points.
 # ============================================================
 
 def calculate_repetition_bonus(
@@ -417,11 +391,8 @@ def calculate_correlation_bonus(
     # --------------------------------------------------------
 
     strong_attack_signals = {
-
         "Multiple Failed Login Attempts",
-
         "Password Spraying",
-
         "Unknown / New Device"
     }
 
@@ -440,11 +411,8 @@ def calculate_correlation_bonus(
     # --------------------------------------------------------
 
     attack_signals = {
-
         "Multiple Failed Login Attempts",
-
         "Password Spraying",
-
         "Suspicious Session Activity"
     }
 
@@ -482,16 +450,6 @@ def calculate_correlation_bonus(
 
 # ============================================================
 # BUILD RISK REPORT
-# ============================================================
-#
-# IMPORTANT:
-# This function MUST remain compatible with
-# account_takeover_service.py.
-#
-# It receives six detector DataFrames and returns:
-#
-#     risk_report, detection_details
-#
 # ============================================================
 
 def build_risk_report(
@@ -541,7 +499,6 @@ def build_risk_report(
     ]
 
     detector_frames = [
-
         df
         for df in detector_frames
         if not df.empty
@@ -592,7 +549,7 @@ def build_risk_report(
     ):
 
         # ====================================================
-        # COUNT ALL DETECTOR OCCURRENCES
+        # COUNT DETECTOR OCCURRENCES
         # ====================================================
 
         detector_counts = (
@@ -741,7 +698,7 @@ def build_risk_report(
                     )
 
         # ====================================================
-        # BASE DETECTOR SCORE
+        # BASE SCORE
         # ====================================================
 
         base_score = sum(
@@ -760,14 +717,45 @@ def build_risk_report(
         )
 
         # ====================================================
-        # REPETITION BONUS
+        # DIMINISHING RETURNS
         # ====================================================
-        #
-        # This is the new part.
-        #
-        # Repeated occurrences strengthen confidence but
-        # cannot multiply the detector's base score.
-        #
+
+        sorted_scores = sorted(
+            detector_scores,
+            reverse=True
+        )
+
+        weighted_score = 0
+
+        for index, score in enumerate(
+            sorted_scores
+        ):
+
+            if index == 0:
+                multiplier = 1.00
+
+            elif index == 1:
+                multiplier = 0.85
+
+            elif index == 2:
+                multiplier = 0.70
+
+            elif index == 3:
+                multiplier = 0.50
+
+            elif index == 4:
+                multiplier = 0.35
+
+            else:
+                multiplier = 0.20
+
+            weighted_score += (
+                score *
+                multiplier
+            )
+
+        # ====================================================
+        # REPETITION BONUS
         # ====================================================
 
         repetition_bonus = 0
@@ -790,59 +778,12 @@ def build_risk_report(
                 )
 
         # ====================================================
-        # DIMINISHING RETURNS
-        # ====================================================
-
-        sorted_scores = sorted(
-            detector_scores,
-            reverse=True
-        )
-
-        weighted_score = 0
-
-        for index, score in enumerate(
-            sorted_scores
-        ):
-
-            if index == 0:
-
-                multiplier = 1.00
-
-            elif index == 1:
-
-                multiplier = 0.85
-
-            elif index == 2:
-
-                multiplier = 0.70
-
-            elif index == 3:
-
-                multiplier = 0.50
-
-            elif index == 4:
-
-                multiplier = 0.35
-
-            else:
-
-                multiplier = 0.20
-
-            weighted_score += (
-                score *
-                multiplier
-            )
-
-        # ====================================================
         # COMBINE SCORE
         # ====================================================
 
         raw_score = (
-
             weighted_score
-
             + correlation_bonus
-
             + repetition_bonus
         )
 
@@ -856,21 +797,18 @@ def build_risk_report(
             "Password Spraying"
             in threats
         ):
-
             strong_signals += 1
 
         if (
             "Multiple Failed Login Attempts"
             in threats
         ):
-
             strong_signals += 1
 
         if (
             "Suspicious Session Activity"
             in threats
         ):
-
             strong_signals += 1
 
         if strong_signals >= 3:
@@ -937,7 +875,6 @@ def build_risk_report(
             correlation_reasons
         )
 
-        # Remove duplicate reasons
         all_reasons = list(
             dict.fromkeys(
                 all_reasons
@@ -1022,6 +959,15 @@ def build_risk_report(
                 1
             )
 
+            detail[
+                "repetition_bonus"
+            ] = calculate_repetition_bonus(
+                detector_counts.get(
+                    detection["threat"],
+                    1
+                )
+            )
+
             detection_details.append(
                 detail
             )
@@ -1043,11 +989,8 @@ def build_risk_report(
     # ========================================================
 
     risk_order = {
-
         "HIGH": 3,
-
         "MEDIUM": 2,
-
         "LOW": 1
     }
 
