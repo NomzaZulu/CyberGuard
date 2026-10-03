@@ -128,6 +128,8 @@ async function initializeCyberGuard() {
 
     initializeQuickActions();
 
+    initializeAccountTakeover();
+
     initializeRawToggles();
 
     initializeOrganisationSettings();
@@ -726,6 +728,236 @@ async function analyzeMessage() {
 
 
 window.analyzeMessage = analyzeMessage;
+
+
+
+/* ============================================================
+   ACCOUNT TAKEOVER DETECTION
+   ============================================================ */
+
+function initializeAccountTakeover() {
+    const eventsInput = $("#takeoverEventsInput");
+    const profilesInput = $("#takeoverProfilesInput");
+    const analyzeButton = $("#analyzeTakeoverButton");
+    const demoButton = $("#loadTakeoverDemo");
+    const clearButton = $("#clearTakeoverEvents");
+    const eventCount = $("#takeoverEventCount");
+
+    if (!eventsInput || !analyzeButton) return;
+
+    const updateEventCount = () => {
+        try {
+            const value = eventsInput.value.trim();
+            if (!value) { eventCount.textContent = "0 events"; return; }
+            const parsed = JSON.parse(value);
+            eventCount.textContent = Array.isArray(parsed) ? `${parsed.length} events` : "Invalid JSON";
+        } catch { eventCount.textContent = "Invalid JSON"; }
+    };
+
+    eventsInput.addEventListener("input", updateEventCount);
+
+    if (clearButton) {
+        clearButton.addEventListener("click", () => {
+            eventsInput.value = "";
+            if (profilesInput) profilesInput.value = "";
+            updateEventCount();
+            resetAccountTakeoverResult();
+        });
+    }
+
+    if (demoButton) demoButton.addEventListener("click", loadAccountTakeoverDemo);
+    analyzeButton.addEventListener("click", analyzeAccountTakeover);
+}
+
+function loadAccountTakeoverDemo() {
+    const eventsInput = $("#takeoverEventsInput");
+    const profilesInput = $("#takeoverProfilesInput");
+    if (!eventsInput) return;
+
+    const demoEvents = [
+        {timestamp:"2026-10-03T10:00:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:01:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:02:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:03:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:04:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:05:00",user_id:"user002",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Firefox-Linux",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:06:00",user_id:"user003",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Firefox-Linux",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:07:00",user_id:"user004",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Firefox-Linux",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:08:00",user_id:"user005",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Firefox-Linux",session_action:"login_failed"},
+        {timestamp:"2026-10-03T10:09:00",user_id:"user006",login_status:"success",ip_address:"203.0.113.10",location:"Unknown City",device:"Unknown-Mobile",session_action:"privileged_action"}
+    ];
+
+    const demoProfiles = [
+        {user_id:"user001",normal_locations:"Bhubaneswar",known_devices:"Edge-Windows"},
+        {user_id:"user002",normal_locations:"Bhubaneswar",known_devices:"Chrome-Windows"},
+        {user_id:"user003",normal_locations:"Cuttack",known_devices:"Chrome-Windows"},
+        {user_id:"user004",normal_locations:"Bhubaneswar",known_devices:"Safari-Mac"},
+        {user_id:"user005",normal_locations:"Puri",known_devices:"Chrome-Windows"},
+        {user_id:"user006",normal_locations:"Bhubaneswar",known_devices:"Chrome-Windows"}
+    ];
+
+    eventsInput.value = JSON.stringify(demoEvents, null, 2);
+    if (profilesInput) profilesInput.value = JSON.stringify(demoProfiles, null, 2);
+    const counter = $("#takeoverEventCount");
+    if (counter) counter.textContent = `${demoEvents.length} events`;
+    showToast("Demo scenario loaded","A sample multi-signal account takeover scenario is ready to analyse.","success");
+}
+
+async function analyzeAccountTakeover() {
+    const eventsInput = $("#takeoverEventsInput");
+    const profilesInput = $("#takeoverProfilesInput");
+    if (!eventsInput) return;
+
+    let events;
+    let profiles = null;
+
+    try { events = JSON.parse(eventsInput.value.trim()); }
+    catch {
+        showToast("Invalid event JSON","Check that the event telemetry is a valid JSON array.","error");
+        return;
+    }
+
+    if (!Array.isArray(events) || events.length === 0) {
+        showToast("Events required","Provide at least one event object before starting the analysis.","error");
+        return;
+    }
+
+    if (profilesInput && profilesInput.value.trim()) {
+        try { profiles = JSON.parse(profilesInput.value.trim()); }
+        catch {
+            showToast("Invalid profile JSON","Check that the user profiles are a valid JSON array.","error");
+            return;
+        }
+        if (!Array.isArray(profiles)) {
+            showToast("Invalid profiles","User profiles must be provided as a JSON array.","error");
+            return;
+        }
+    }
+
+    setResultState("takeover","PROCESSING");
+    showLoading("Analysing account activity","CyberGuard is checking authentication, device, location and session behaviour.");
+
+    try {
+        const response = await fetch("/api/account_takeover", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({events,profiles})
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.detail || data?.error || "Account takeover analysis failed.");
+
+        renderAccountTakeoverResult(data);
+        addHistoryEntry({type:"Account Takeover",input:`${events.length} telemetry events`,result:summarizeAccountTakeover(data)});
+        showToast("Analysis complete","Account activity has been processed by the CyberGuard takeover engine.","success");
+    } catch (error) {
+        console.error("[CyberGuard] Account takeover analysis failed:",error);
+        renderAccountTakeoverError(error);
+        showToast("Analysis failed",getErrorMessage(error),"error");
+    } finally { hideLoading(); }
+}
+
+function renderAccountTakeoverResult(response) {
+    const result = response?.result || response;
+    const summary = result?.summary || {};
+    const accounts = Array.isArray(result?.accounts) ? result.accounts : [];
+    const detections = Array.isArray(result?.detections) ? result.detections : [];
+
+    $("#takeoverResultEmpty")?.classList.add("hidden");
+    $("#takeoverResultContent")?.classList.remove("hidden");
+    setResultState("takeover","COMPLETE");
+
+    $("#takeoverUsersAnalyzed").textContent = String(summary.users_analyzed ?? 0);
+    $("#takeoverAccountsFlagged").textContent = String(summary.accounts_flagged ?? 0);
+    $("#takeoverDetectionEvents").textContent = String(summary.detection_events ?? detections.length ?? 0);
+    $("#takeoverHighRisk").textContent = String(summary.high_risk ?? 0);
+    $("#takeoverMediumRisk").textContent = String(summary.medium_risk ?? 0);
+    $("#takeoverLowRisk").textContent = String(summary.low_risk ?? 0);
+
+    const accountList = $("#takeoverAccountList");
+    if (accountList) {
+        accountList.innerHTML = accounts.length ? "" : `<div class="takeover-no-threat"><span>✓</span><div><strong>No accounts were flagged</strong><p>The supplied telemetry did not produce a risk report.</p></div></div>`;
+        accounts.forEach(account => accountList.insertAdjacentHTML("beforeend",buildTakeoverAccountCard(account)));
+    }
+
+    const detectionList = $("#takeoverDetectionList");
+    if (detectionList) {
+        detectionList.innerHTML = detections.length ? "" : `<div class="takeover-no-threat compact"><span>✓</span><div><strong>No detector events returned</strong><p>No individual takeover indicators were triggered.</p></div></div>`;
+        detections.slice(0,20).forEach(detection => detectionList.insertAdjacentHTML("beforeend",buildTakeoverDetectionCard(detection)));
+    }
+
+    const high = Number(summary.high_risk || 0);
+    const medium = Number(summary.medium_risk || 0);
+    const flagged = Number(summary.accounts_flagged || 0);
+    const meaning = $("#takeoverMeaning");
+    if (meaning) {
+        if (high > 0) meaning.textContent = `${high} account${high === 1 ? "" : "s"} received a high-risk assessment. The engine found multiple or strong behavioural signals that warrant investigation.`;
+        else if (medium > 0) meaning.textContent = `${medium} account${medium === 1 ? "" : "s"} received a medium-risk assessment. Suspicious behaviour was detected, but the evidence is not classified as high risk.`;
+        else if (flagged > 0) meaning.textContent = `${flagged} account${flagged === 1 ? "" : "s"} appeared in the risk report, but none were classified as high or medium risk.`;
+        else meaning.textContent = "No account takeover risk was identified from the supplied telemetry.";
+    }
+    const recommendation = $("#takeoverRecommendation");
+    if (recommendation) {
+        if (high > 0) recommendation.textContent = "Investigate high-risk accounts first, review recent authentication and session activity, and follow your organisation's incident-response procedure.";
+        else if (medium > 0) recommendation.textContent = "Review the flagged accounts and their detector evidence before deciding whether additional verification or access controls are required.";
+        else recommendation.textContent = "No immediate takeover response was indicated by the supplied telemetry. Continue monitoring account activity.";
+    }
+    const raw = $("#takeoverRaw");
+    if (raw) raw.textContent = safePrettyPrint(response);
+}
+
+function buildTakeoverAccountCard(account) {
+    const risk = String(account.risk_level || "UNKNOWN").toUpperCase();
+    const riskClass = risk === "HIGH" ? "high" : risk === "MEDIUM" ? "medium" : "low";
+    const detectors = Array.isArray(account.detectors_triggered) ? account.detectors_triggered : [];
+    const reasons = Array.isArray(account.reasons) ? account.reasons : [];
+    const detectorHtml = detectors.length ? detectors.map(item => `<span>${escapeHtml(item)}</span>`).join("") : `<span>No detector names returned</span>`;
+    const reasonHtml = reasons.length ? reasons.map(item => `<li>${escapeHtml(item)}</li>`).join("") : `<li>No additional evidence returned.</li>`;
+    return `
+        <article class="takeover-account-card ${riskClass}">
+            <div class="takeover-account-top"><div><span class="takeover-account-label">ACCOUNT</span><strong>${escapeHtml(account.user_id ?? "Unknown user")}</strong></div><div class="takeover-risk-badge ${riskClass}">${escapeHtml(risk)} RISK</div></div>
+            <div class="takeover-account-score"><span>RISK SCORE</span><strong>${escapeHtml(account.risk_score ?? 0)}</strong></div>
+            <div class="takeover-detector-tags">${detectorHtml}</div>
+            <div class="takeover-reasons"><span>WHY IT WAS FLAGGED</span><ul>${reasonHtml}</ul></div>
+        </article>`;
+}
+
+function buildTakeoverDetectionCard(detection) {
+    const threat = detection.threat || "Detection event";
+    const user = detection.user_id || "Multiple / source-level";
+    const evidence = [];
+    Object.entries(detection).forEach(([key,value]) => {
+        if (["threat","user_id","risk"].includes(key)) return;
+        if (value === null || value === undefined || value === "" || typeof value === "object") return;
+        evidence.push(`${formatKey(key)}: ${value}`);
+    });
+    return `
+        <div class="takeover-detection-card"><div class="takeover-detection-icon">!</div><div class="takeover-detection-main"><strong>${escapeHtml(threat)}</strong><span>${escapeHtml(String(user))}</span><p>${escapeHtml(evidence.slice(0,3).join(" · ") || "Detector triggered without additional display fields.")}</p></div><span class="takeover-detection-risk">${escapeHtml(String(detection.risk || "FLAGGED").toUpperCase())}</span></div>`;
+}
+
+function summarizeAccountTakeover(response) {
+    const summary = response?.result?.summary || response?.summary || {};
+    return `${summary.accounts_flagged ?? 0} flagged accounts / ${summary.detection_events ?? 0} detection events`;
+}
+
+function resetAccountTakeoverResult() {
+    $("#takeoverResultEmpty")?.classList.remove("hidden");
+    $("#takeoverResultContent")?.classList.add("hidden");
+    setResultState("takeover","WAITING");
+}
+
+function renderAccountTakeoverError(error) {
+    $("#takeoverResultEmpty")?.classList.add("hidden");
+    $("#takeoverResultContent")?.classList.remove("hidden");
+    setResultState("takeover","ERROR");
+    ["takeoverUsersAnalyzed","takeoverAccountsFlagged","takeoverDetectionEvents","takeoverHighRisk","takeoverMediumRisk","takeoverLowRisk"].forEach(id => { const el=$("#"+id); if(el) el.textContent="—"; });
+    $("#takeoverAccountList").innerHTML = `<div class="takeover-error-card"><div><strong>Analysis could not be completed</strong><p>${escapeHtml(getErrorMessage(error))}</p></div></div>`;
+    $("#takeoverDetectionList").innerHTML = "";
+    $("#takeoverMeaning").textContent = "The Account Takeover engine could not complete this analysis.";
+    $("#takeoverRecommendation").textContent = "Check the API deployment and input format, then retry the analysis.";
+    $("#takeoverRaw").textContent = error?.stack || String(error);
+}
+
+window.analyzeAccountTakeover = analyzeAccountTakeover;
 
 
 /* ============================================================
