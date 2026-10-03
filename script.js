@@ -1058,7 +1058,7 @@ async function analyzeAccountTakeover() {
     );
 
     try {
-        const response = await fetch("/api", {
+        const response = await fetch("/api/account_takeover", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify({events,profiles})
