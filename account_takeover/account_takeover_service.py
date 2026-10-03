@@ -1,6 +1,6 @@
 import pandas as pd
 
-from account_takeover_engine import (
+from .account_takeover_engine import (
     detect_multiple_failed_logins,
     detect_password_spraying,
     detect_unusual_locations,
@@ -9,7 +9,7 @@ from account_takeover_engine import (
     detect_sudden_account_behaviour,
 )
 
-from risk_engine import build_risk_report
+from .risk_engine import build_risk_report
 
 
 # ============================================================
