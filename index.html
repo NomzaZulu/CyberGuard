@@ -1654,22 +1654,63 @@
                             <div class="takeover-info">
                                 <span class="takeover-info-icon">i</span>
                                 <p>
-                                    Paste event telemetry as JSON. CyberGuard checks six takeover indicators: failed logins, password spraying, unusual locations, unknown devices, suspicious sessions and sudden behaviour changes.
+                                    Upload JSON telemetry files. CyberGuard checks six takeover indicators: failed logins, password spraying, unusual locations, unknown devices, suspicious sessions and sudden behaviour changes.
                                 </p>
                             </div>
 
                             <div class="field">
                                 <div class="field-label-row">
-                                    <label for="takeoverEventsInput">EVENT TELEMETRY — JSON ARRAY</label>
+                                    <label>EVENT TELEMETRY — JSON ARRAY</label>
                                     <button class="clear-button" id="clearTakeoverEvents" type="button">Clear</button>
                                 </div>
-                                <textarea id="takeoverEventsInput" class="takeover-json-input" spellcheck="false" placeholder='[{"timestamp":"2026-10-03T10:00:00","user_id":"user001","login_status":"failed","ip_address":"203.0.113.10","location":"Unknown City","device":"Chrome-Windows","session_action":"login_failed"}]'></textarea>
+
+                                <input
+                                    type="file"
+                                    id="takeoverEventsInput"
+                                    class="takeover-file-input"
+                                    accept=".json,application/json"
+                                    hidden
+                                >
+
+                                <label
+                                    for="takeoverEventsInput"
+                                    class="takeover-upload-box"
+                                    id="takeoverEventsUploadBox"
+                                >
+                                    <span class="takeover-upload-icon">↑</span>
+                                    <span class="takeover-upload-title">Upload event telemetry JSON</span>
+                                    <span class="takeover-upload-subtitle">Choose a .json file containing an array of authentication events</span>
+                                    <span class="takeover-upload-button">Choose JSON File</span>
+                                    <span class="takeover-file-name" id="takeoverEventsFileName">No file selected</span>
+                                </label>
                             </div>
 
                             <div class="takeover-field-grid">
                                 <div class="field">
-                                    <label for="takeoverProfilesInput">OPTIONAL USER PROFILES — JSON ARRAY</label>
-                                    <textarea id="takeoverProfilesInput" class="takeover-profile-input" spellcheck="false" placeholder='[{"user_id":"user001","normal_locations":"Bhubaneswar","known_devices":"Chrome-Windows"}]'></textarea>
+                                    <div class="field-label-row">
+                                        <label>OPTIONAL USER PROFILES — JSON ARRAY</label>
+                                        <button class="clear-button" id="clearTakeoverProfiles" type="button">Clear</button>
+                                    </div>
+
+                                    <input
+                                        type="file"
+                                        id="takeoverProfilesInput"
+                                        class="takeover-file-input"
+                                        accept=".json,application/json"
+                                        hidden
+                                    >
+
+                                    <label
+                                        for="takeoverProfilesInput"
+                                        class="takeover-upload-box takeover-upload-box-small"
+                                        id="takeoverProfilesUploadBox"
+                                    >
+                                        <span class="takeover-upload-icon">↑</span>
+                                        <span class="takeover-upload-title">Upload user profiles JSON</span>
+                                        <span class="takeover-upload-subtitle">Optional baseline locations and known devices</span>
+                                        <span class="takeover-upload-button">Choose JSON File</span>
+                                        <span class="takeover-file-name" id="takeoverProfilesFileName">No file selected</span>
+                                    </label>
                                 </div>
 
                                 <div class="takeover-format-card">
@@ -1678,6 +1719,7 @@
                                         <span>timestamp</span><span>user_id</span><span>login_status</span>
                                         <span>ip_address</span><span>location</span><span>device</span><span>session_action</span>
                                     </div>
+                                    <p class="takeover-format-note">Files must contain a JSON array of objects. Profiles are optional.</p>
                                 </div>
                             </div>
 
