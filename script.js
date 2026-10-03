@@ -76,6 +76,12 @@ const state = {
     selectedQrFile:
         null,
 
+    takeoverEvents:
+        null,
+
+    takeoverProfiles:
+        null,
+
     history:
         [],
 
@@ -740,27 +746,173 @@ function initializeAccountTakeover() {
     const profilesInput = $("#takeoverProfilesInput");
     const analyzeButton = $("#analyzeTakeoverButton");
     const demoButton = $("#loadTakeoverDemo");
-    const clearButton = $("#clearTakeoverEvents");
-    const eventCount = $("#takeoverEventCount");
+    const clearEventsButton = $("#clearTakeoverEvents");
+    const clearProfilesButton = $("#clearTakeoverProfiles");
 
     if (!eventsInput || !analyzeButton) return;
 
-    const updateEventCount = () => {
-        try {
-            const value = eventsInput.value.trim();
-            if (!value) { eventCount.textContent = "0 events"; return; }
-            const parsed = JSON.parse(value);
-            eventCount.textContent = Array.isArray(parsed) ? `${parsed.length} events` : "Invalid JSON";
-        } catch { eventCount.textContent = "Invalid JSON"; }
+    const setFileName = (id, name, loaded = false) => {
+        const element = $(id);
+        if (!element) return;
+        element.textContent = name || "No file selected";
+        element.classList.toggle("loaded", Boolean(loaded));
     };
 
-    eventsInput.addEventListener("input", updateEventCount);
+    const updateEventCount = () => {
+        const count = Array.isArray(state.takeoverEvents)
+            ? state.takeoverEvents.length
+            : 0;
+        const counter = $("#takeoverEventCount");
+        if (counter) counter.textContent = `${count} events`;
+    };
 
-    if (clearButton) {
-        clearButton.addEventListener("click", () => {
+    const parseJsonFile = (file, kind) => {
+        if (!file) return;
+
+        if (
+            file.type &&
+            file.type !== "application/json" &&
+            !file.name.toLowerCase().endsWith(".json")
+        ) {
+            showToast(
+                "JSON file required",
+                "Please choose a .json file.",
+                "error"
+            );
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(String(reader.result || ""));
+
+                if (!Array.isArray(parsed)) {
+                    throw new Error("The uploaded JSON must contain an array of objects.");
+                }
+
+                if (parsed.length === 0 && kind === "events") {
+                    throw new Error("The event telemetry file contains no events.");
+                }
+
+                if (!parsed.every(item => item && typeof item === "object" && !Array.isArray(item))) {
+                    throw new Error("The JSON array must contain objects.");
+                }
+
+                if (kind === "events") {
+                    state.takeoverEvents = parsed;
+                    setFileName(
+                        "#takeoverEventsFileName",
+                        `${file.name} • ${parsed.length} events`,
+                        true
+                    );
+                    updateEventCount();
+                    showToast(
+                        "Telemetry uploaded",
+                        `${parsed.length} event${parsed.length === 1 ? "" : "s"} loaded from ${file.name}.`,
+                        "success"
+                    );
+                } else {
+                    state.takeoverProfiles = parsed;
+                    setFileName(
+                        "#takeoverProfilesFileName",
+                        `${file.name} • ${parsed.length} profiles`,
+                        true
+                    );
+                    showToast(
+                        "Profiles uploaded",
+                        `${parsed.length} profile${parsed.length === 1 ? "" : "s"} loaded from ${file.name}.`,
+                        "success"
+                    );
+                }
+
+                resetAccountTakeoverResult();
+            } catch (error) {
+                showToast(
+                    "Invalid JSON file",
+                    error.message || "The uploaded file could not be read as a JSON array.",
+                    "error"
+                );
+            } finally {
+                if (kind === "events") eventsInput.value = "";
+                else if (profilesInput) profilesInput.value = "";
+            }
+        };
+
+        reader.onerror = () => {
+            showToast(
+                "File read failed",
+                "CyberGuard could not read the selected file.",
+                "error"
+            );
+        };
+
+        reader.readAsText(file);
+    };
+
+    eventsInput.addEventListener("change", () => {
+        parseJsonFile(eventsInput.files?.[0], "events");
+    });
+
+    if (profilesInput) {
+        profilesInput.addEventListener("change", () => {
+            parseJsonFile(profilesInput.files?.[0], "profiles");
+        });
+    }
+
+    const setupDropZone = (input, box, kind) => {
+        if (!input || !box) return;
+
+        ["dragenter", "dragover"].forEach(eventName => {
+            box.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                box.classList.add("dragover");
+            });
+        });
+
+        ["dragleave", "drop"].forEach(eventName => {
+            box.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                box.classList.remove("dragover");
+            });
+        });
+
+        box.addEventListener("drop", event => {
+            const file = event.dataTransfer?.files?.[0];
+            parseJsonFile(file, kind);
+        });
+    };
+
+    setupDropZone(
+        eventsInput,
+        $("#takeoverEventsUploadBox"),
+        "events"
+    );
+
+    setupDropZone(
+        profilesInput,
+        $("#takeoverProfilesUploadBox"),
+        "profiles"
+    );
+
+    if (clearEventsButton) {
+        clearEventsButton.addEventListener("click", () => {
+            state.takeoverEvents = null;
             eventsInput.value = "";
-            if (profilesInput) profilesInput.value = "";
+            setFileName("#takeoverEventsFileName", "No file selected");
             updateEventCount();
+            resetAccountTakeoverResult();
+        });
+    }
+
+    if (clearProfilesButton) {
+        clearProfilesButton.addEventListener("click", () => {
+            state.takeoverProfiles = null;
+            if (profilesInput) profilesInput.value = "";
+            setFileName("#takeoverProfilesFileName", "No file selected");
             resetAccountTakeoverResult();
         });
     }
@@ -769,11 +921,8 @@ function initializeAccountTakeover() {
     analyzeButton.addEventListener("click", analyzeAccountTakeover);
 }
 
-function loadAccountTakeoverDemo() {
-    const eventsInput = $("#takeoverEventsInput");
-    const profilesInput = $("#takeoverProfilesInput");
-    if (!eventsInput) return;
 
+function loadAccountTakeoverDemo() {
     const demoEvents = [
         {timestamp:"2026-10-03T10:00:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
         {timestamp:"2026-10-03T10:01:00",user_id:"user001",login_status:"failed",ip_address:"203.0.113.10",location:"Unknown City",device:"Chrome-Windows",session_action:"login_failed"},
@@ -796,46 +945,59 @@ function loadAccountTakeoverDemo() {
         {user_id:"user006",normal_locations:"Bhubaneswar",known_devices:"Chrome-Windows"}
     ];
 
-    eventsInput.value = JSON.stringify(demoEvents, null, 2);
-    if (profilesInput) profilesInput.value = JSON.stringify(demoProfiles, null, 2);
+    state.takeoverEvents = demoEvents;
+    state.takeoverProfiles = demoProfiles;
+
+    const eventFileName = $("#takeoverEventsFileName");
+    const profileFileName = $("#takeoverProfilesFileName");
+    if (eventFileName) {
+        eventFileName.textContent = `Demo scenario • ${demoEvents.length} events`;
+        eventFileName.classList.add("loaded");
+    }
+    if (profileFileName) {
+        profileFileName.textContent = `Demo scenario • ${demoProfiles.length} profiles`;
+        profileFileName.classList.add("loaded");
+    }
+
     const counter = $("#takeoverEventCount");
     if (counter) counter.textContent = `${demoEvents.length} events`;
-    showToast("Demo scenario loaded","A sample multi-signal account takeover scenario is ready to analyse.","success");
+
+    resetAccountTakeoverResult();
+    showToast(
+        "Demo scenario loaded",
+        "A sample multi-signal account takeover scenario is ready to analyse.",
+        "success"
+    );
 }
 
+
 async function analyzeAccountTakeover() {
-    const eventsInput = $("#takeoverEventsInput");
-    const profilesInput = $("#takeoverProfilesInput");
-    if (!eventsInput) return;
-
-    let events;
-    let profiles = null;
-
-    try { events = JSON.parse(eventsInput.value.trim()); }
-    catch {
-        showToast("Invalid event JSON","Check that the event telemetry is a valid JSON array.","error");
-        return;
-    }
+    const events = state.takeoverEvents;
+    const profiles = state.takeoverProfiles;
 
     if (!Array.isArray(events) || events.length === 0) {
-        showToast("Events required","Provide at least one event object before starting the analysis.","error");
+        showToast(
+            "Telemetry required",
+            "Upload an event telemetry JSON file before starting the analysis.",
+            "error"
+        );
         return;
     }
 
-    if (profilesInput && profilesInput.value.trim()) {
-        try { profiles = JSON.parse(profilesInput.value.trim()); }
-        catch {
-            showToast("Invalid profile JSON","Check that the user profiles are a valid JSON array.","error");
-            return;
-        }
-        if (!Array.isArray(profiles)) {
-            showToast("Invalid profiles","User profiles must be provided as a JSON array.","error");
-            return;
-        }
+    if (profiles !== null && !Array.isArray(profiles)) {
+        showToast(
+            "Invalid profiles",
+            "The uploaded user profiles must be a JSON array.",
+            "error"
+        );
+        return;
     }
 
     setResultState("takeover","PROCESSING");
-    showLoading("Analysing account activity","CyberGuard is checking authentication, device, location and session behaviour.");
+    showLoading(
+        "Analysing account activity",
+        "CyberGuard is checking authentication, device, location and session behaviour."
+    );
 
     try {
         const response = await fetch("/api/account_takeover", {
@@ -843,17 +1005,45 @@ async function analyzeAccountTakeover() {
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify({events,profiles})
         });
+
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.detail || data?.error || "Account takeover analysis failed.");
+
+        if (!response.ok) {
+            throw new Error(
+                data?.detail ||
+                data?.error ||
+                "Account takeover analysis failed."
+            );
+        }
 
         renderAccountTakeoverResult(data);
-        addHistoryEntry({type:"Account Takeover",input:`${events.length} telemetry events`,result:summarizeAccountTakeover(data)});
-        showToast("Analysis complete","Account activity has been processed by the CyberGuard takeover engine.","success");
+        addHistoryEntry({
+            type:"Account Takeover",
+            input:`${events.length} telemetry events`,
+            result:summarizeAccountTakeover(data)
+        });
+
+        showToast(
+            "Analysis complete",
+            "Account activity has been processed by the CyberGuard takeover engine.",
+            "success"
+        );
     } catch (error) {
-        console.error("[CyberGuard] Account takeover analysis failed:",error);
+        console.error(
+            "[CyberGuard] Account takeover analysis failed:",
+            error
+        );
+
         renderAccountTakeoverError(error);
-        showToast("Analysis failed",getErrorMessage(error),"error");
-    } finally { hideLoading(); }
+
+        showToast(
+            "Analysis failed",
+            getErrorMessage(error),
+            "error"
+        );
+    } finally {
+        hideLoading();
+    }
 }
 
 function renderAccountTakeoverResult(response) {
