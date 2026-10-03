@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
+
 import pandas as pd
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from account_takeover.account_takeover_service import analyze_account_takeover
 
@@ -15,7 +17,8 @@ class AccountTakeoverRequest(BaseModel):
 
 
 def clean_value(value):
-    """Convert pandas/numpy values into JSON-safe Python values."""
+    """Convert pandas / numpy values into JSON-safe Python values."""
+
     if value is None:
         return None
 
@@ -52,7 +55,7 @@ def health():
         "success": True,
         "service": "CyberGuard Account Takeover Detection",
         "status": "online",
-        "detectors": 6
+        "detectors": 6,
     }
 
 
@@ -61,7 +64,7 @@ def analyze(request: AccountTakeoverRequest):
     if not request.events:
         raise HTTPException(
             status_code=400,
-            detail="At least one event is required."
+            detail="At least one event is required.",
         )
 
     try:
@@ -73,24 +76,30 @@ def analyze(request: AccountTakeoverRequest):
 
         result = analyze_account_takeover(
             events=events_df,
-            profiles=profiles_df
+            profiles=profiles_df,
         )
 
-        return {
-            "success": True,
-            "type": "account_takeover",
-            "result": clean_value(result)
-        }
+        return JSONResponse(
+            content={
+                "success": True,
+                "type": "account_takeover",
+                "result": clean_value(result),
+            }
+        )
 
     except (ValueError, TypeError) as error:
         raise HTTPException(
             status_code=400,
-            detail=str(error)
-        )
+            detail=str(error),
+        ) from error
 
     except Exception as error:
-        print("CyberGuard Account Takeover API error:", repr(error))
+        print(
+            "CyberGuard Account Takeover API error:",
+            repr(error),
+        )
+
         raise HTTPException(
             status_code=500,
-            detail="Account takeover analysis failed."
-        )
+            detail="Account takeover analysis failed.",
+        ) from error
