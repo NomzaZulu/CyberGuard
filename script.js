@@ -766,17 +766,79 @@ function initializeAccountTakeover() {
         if (counter) counter.textContent = `${count} events`;
     };
 
-    const parseJsonFile = (file, kind) => {
+    const parseCsv = (text) => {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    cell += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                row.push(cell);
+                cell = "";
+            } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                if (char === '\r' && next === '\n') i++;
+                row.push(cell);
+                cell = "";
+                if (row.some(value => String(value).trim() !== "")) rows.push(row);
+                row = [];
+            } else {
+                cell += char;
+            }
+        }
+
+        if (cell !== "" || row.length) {
+            row.push(cell);
+            if (row.some(value => String(value).trim() !== "")) rows.push(row);
+        }
+
+        if (!rows.length) {
+            throw new Error("The CSV file is empty.");
+        }
+
+        const headers = rows[0].map((header, index) => {
+            const value = String(header || "")
+                .replace(/^\uFEFF/, "")
+                .trim();
+            return value || `column_${index + 1}`;
+        });
+
+        const duplicateHeaders = headers.filter((header, index) => headers.indexOf(header) !== index);
+        if (duplicateHeaders.length) {
+            throw new Error(`Duplicate CSV header: ${duplicateHeaders[0]}`);
+        }
+
+        return rows.slice(1).map(values => {
+            const object = {};
+            headers.forEach((header, index) => {
+                object[header] = String(values[index] ?? "").trim();
+            });
+            return object;
+        }).filter(object => Object.values(object).some(value => value !== ""));
+    };
+
+    const parseCsvFile = (file, kind) => {
         if (!file) return;
 
-        if (
-            file.type &&
-            file.type !== "application/json" &&
-            !file.name.toLowerCase().endsWith(".json")
-        ) {
+        const isCsv =
+            file.name.toLowerCase().endsWith(".csv") ||
+            file.type === "text/csv" ||
+            file.type === "application/vnd.ms-excel";
+
+        if (!isCsv) {
             showToast(
-                "JSON file required",
-                "Please choose a .json file.",
+                "CSV file required",
+                "Please choose a .csv file.",
                 "error"
             );
             return;
@@ -786,18 +848,14 @@ function initializeAccountTakeover() {
 
         reader.onload = () => {
             try {
-                const parsed = JSON.parse(String(reader.result || ""));
+                const parsed = parseCsv(String(reader.result || ""));
 
-                if (!Array.isArray(parsed)) {
-                    throw new Error("The uploaded JSON must contain an array of objects.");
+                if (!parsed.length && kind === "events") {
+                    throw new Error("The event telemetry CSV contains no data rows.");
                 }
 
-                if (parsed.length === 0 && kind === "events") {
-                    throw new Error("The event telemetry file contains no events.");
-                }
-
-                if (!parsed.every(item => item && typeof item === "object" && !Array.isArray(item))) {
-                    throw new Error("The JSON array must contain objects.");
+                if (!parsed.length && kind === "profiles") {
+                    throw new Error("The user profiles CSV contains no data rows.");
                 }
 
                 if (kind === "events") {
@@ -830,8 +888,8 @@ function initializeAccountTakeover() {
                 resetAccountTakeoverResult();
             } catch (error) {
                 showToast(
-                    "Invalid JSON file",
-                    error.message || "The uploaded file could not be read as a JSON array.",
+                    "Invalid CSV file",
+                    error.message || "The uploaded file could not be read as CSV.",
                     "error"
                 );
             } finally {
@@ -843,7 +901,7 @@ function initializeAccountTakeover() {
         reader.onerror = () => {
             showToast(
                 "File read failed",
-                "CyberGuard could not read the selected file.",
+                "CyberGuard could not read the selected CSV file.",
                 "error"
             );
         };
@@ -852,12 +910,12 @@ function initializeAccountTakeover() {
     };
 
     eventsInput.addEventListener("change", () => {
-        parseJsonFile(eventsInput.files?.[0], "events");
+        parseCsvFile(eventsInput.files?.[0], "events");
     });
 
     if (profilesInput) {
         profilesInput.addEventListener("change", () => {
-            parseJsonFile(profilesInput.files?.[0], "profiles");
+            parseCsvFile(profilesInput.files?.[0], "profiles");
         });
     }
 
@@ -882,7 +940,7 @@ function initializeAccountTakeover() {
 
         box.addEventListener("drop", event => {
             const file = event.dataTransfer?.files?.[0];
-            parseJsonFile(file, kind);
+            parseCsvFile(file, kind);
         });
     };
 
@@ -978,7 +1036,7 @@ async function analyzeAccountTakeover() {
     if (!Array.isArray(events) || events.length === 0) {
         showToast(
             "Telemetry required",
-            "Upload an event telemetry JSON file before starting the analysis.",
+            "Upload an event telemetry CSV file before starting the analysis.",
             "error"
         );
         return;
@@ -987,7 +1045,7 @@ async function analyzeAccountTakeover() {
     if (profiles !== null && !Array.isArray(profiles)) {
         showToast(
             "Invalid profiles",
-            "The uploaded user profiles must be a JSON array.",
+            "The uploaded user profiles must be a CSV file.",
             "error"
         );
         return;
