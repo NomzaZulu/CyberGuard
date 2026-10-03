@@ -34,46 +34,30 @@ class AccountTakeoverRequest(BaseModel):
 
 def make_json_safe(value):
 
-    if isinstance(
-        value,
-        dict
-    ):
+    if isinstance(value, dict):
 
         return {
             str(key): make_json_safe(val)
             for key, val in value.items()
         }
 
-
-    if isinstance(
-        value,
-        list
-    ):
+    if isinstance(value, list):
 
         return [
             make_json_safe(item)
             for item in value
         ]
 
-
-    if isinstance(
-        value,
-        tuple
-    ):
+    if isinstance(value, tuple):
 
         return [
             make_json_safe(item)
             for item in value
         ]
 
-
-    if isinstance(
-        value,
-        pd.Timestamp
-    ):
+    if isinstance(value, pd.Timestamp):
 
         return value.isoformat()
-
 
     try:
 
@@ -85,11 +69,7 @@ def make_json_safe(value):
 
         pass
 
-
-    if hasattr(
-        value,
-        "item"
-    ):
+    if hasattr(value, "item"):
 
         try:
 
@@ -99,7 +79,6 @@ def make_json_safe(value):
 
             pass
 
-
     return value
 
 
@@ -108,8 +87,6 @@ def make_json_safe(value):
 # ============================================================
 
 @app.get("/")
-@app.get("/api")
-@app.get("/api/account_takeover")
 def health_check():
 
     return {
@@ -125,8 +102,6 @@ def health_check():
 # ============================================================
 
 @app.post("/")
-@app.post("/api")
-@app.post("/api/account_takeover")
 def analyze_account_takeover_api(
     request: AccountTakeoverRequest
 ):
@@ -137,7 +112,6 @@ def analyze_account_takeover_api(
             status_code=400,
             detail="No event telemetry supplied."
         )
-
 
     try:
 
