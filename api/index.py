@@ -2,6 +2,7 @@ import pandas as pd
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+
 from typing import Any, Dict, List, Optional
 
 from account_takeover.account_takeover_service import (
@@ -28,10 +29,85 @@ class AccountTakeoverRequest(BaseModel):
 
 
 # ============================================================
+# JSON SAFE CONVERTER
+# ============================================================
+
+def make_json_safe(value):
+
+    if isinstance(
+        value,
+        dict
+    ):
+
+        return {
+            str(key): make_json_safe(val)
+            for key, val in value.items()
+        }
+
+
+    if isinstance(
+        value,
+        list
+    ):
+
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+
+    if isinstance(
+        value,
+        tuple
+    ):
+
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+
+    if isinstance(
+        value,
+        pd.Timestamp
+    ):
+
+        return value.isoformat()
+
+
+    try:
+
+        if pd.isna(value):
+
+            return None
+
+    except Exception:
+
+        pass
+
+
+    if hasattr(
+        value,
+        "item"
+    ):
+
+        try:
+
+            return value.item()
+
+        except Exception:
+
+            pass
+
+
+    return value
+
+
+# ============================================================
 # HEALTH CHECK
 # ============================================================
 
-@app.get("/")
+@app.get("/api/account_takeover")
 def health_check():
 
     return {
@@ -46,7 +122,7 @@ def health_check():
 # ACCOUNT TAKEOVER ANALYSIS
 # ============================================================
 
-@app.post("/")
+@app.post("/api/account_takeover")
 def analyze_account_takeover_api(
     request: AccountTakeoverRequest
 ):
@@ -58,16 +134,21 @@ def analyze_account_takeover_api(
             detail="No event telemetry supplied."
         )
 
+
     try:
 
         # ----------------------------------------------------
-        # Convert frontend JSON arrays into DataFrames
+        # Convert frontend event data into DataFrame
         # ----------------------------------------------------
 
         events_df = pd.DataFrame(
             request.events
         )
 
+
+        # ----------------------------------------------------
+        # Convert optional profiles into DataFrame
+        # ----------------------------------------------------
 
         if request.profiles:
 
@@ -81,7 +162,7 @@ def analyze_account_takeover_api(
 
 
         # ----------------------------------------------------
-        # Run the existing CyberGuard engine
+        # Run Account Takeover Detection Engine
         # ----------------------------------------------------
 
         result = analyze_account_takeover(
@@ -91,83 +172,8 @@ def analyze_account_takeover_api(
 
 
         # ----------------------------------------------------
-        # Convert pandas / timestamps / numpy values
-        # into JSON-safe values
+        # Return JSON-safe response
         # ----------------------------------------------------
-
-        def make_json_safe(value):
-
-            if isinstance(
-                value,
-                dict
-            ):
-
-                return {
-                    str(key):
-                    make_json_safe(val)
-
-                    for key, val
-                    in value.items()
-                }
-
-
-            if isinstance(
-                value,
-                list
-            ):
-
-                return [
-                    make_json_safe(item)
-                    for item in value
-                ]
-
-
-            if isinstance(
-                value,
-                tuple
-            ):
-
-                return [
-                    make_json_safe(item)
-                    for item in value
-                ]
-
-
-            if isinstance(
-                value,
-                pd.Timestamp
-            ):
-
-                return value.isoformat()
-
-
-            try:
-
-                if pd.isna(value):
-
-                    return None
-
-            except Exception:
-
-                pass
-
-
-            if hasattr(
-                value,
-                "item"
-            ):
-
-                try:
-
-                    return value.item()
-
-                except Exception:
-
-                    pass
-
-
-            return value
-
 
         return {
             "success": True,
