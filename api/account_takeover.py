@@ -1,105 +1,205 @@
+import pandas as pd
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 
-import pandas as pd
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
-from account_takeover.account_takeover_service import analyze_account_takeover
+from account_takeover.account_takeover_service import (
+    analyze_account_takeover
+)
 
 
-app = FastAPI(title="CyberGuard Account Takeover API")
+app = FastAPI(
+    title="CyberGuard Account Takeover API"
+)
 
+
+# ============================================================
+# REQUEST MODEL
+# ============================================================
 
 class AccountTakeoverRequest(BaseModel):
-    events: List[Dict[str, Any]] = Field(default_factory=list)
-    profiles: Optional[List[Dict[str, Any]]] = None
+
+    events: List[Dict[str, Any]]
+
+    profiles: Optional[
+        List[Dict[str, Any]]
+    ] = None
 
 
-def clean_value(value):
-    """Convert pandas / numpy values into JSON-safe Python values."""
-
-    if value is None:
-        return None
-
-    if isinstance(value, dict):
-        return {str(k): clean_value(v) for k, v in value.items()}
-
-    if isinstance(value, list):
-        return [clean_value(v) for v in value]
-
-    if isinstance(value, tuple):
-        return [clean_value(v) for v in value]
-
-    if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-
-    try:
-        if pd.isna(value):
-            return None
-    except Exception:
-        pass
-
-    if hasattr(value, "item"):
-        try:
-            return value.item()
-        except Exception:
-            pass
-
-    return value
-
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
 @app.get("/")
-def health():
+def health_check():
+
     return {
         "success": True,
         "service": "CyberGuard Account Takeover Detection",
         "status": "online",
-        "detectors": 6,
+        "detectors": 6
     }
 
 
+# ============================================================
+# ACCOUNT TAKEOVER ANALYSIS
+# ============================================================
+
 @app.post("/")
-def analyze(request: AccountTakeoverRequest):
+def analyze_account_takeover_api(
+    request: AccountTakeoverRequest
+):
+
     if not request.events:
+
         raise HTTPException(
             status_code=400,
-            detail="At least one event is required.",
+            detail="No event telemetry supplied."
         )
 
     try:
-        events_df = pd.DataFrame(request.events)
 
-        profiles_df = None
-        if request.profiles is not None:
-            profiles_df = pd.DataFrame(request.profiles)
+        # ----------------------------------------------------
+        # Convert frontend JSON arrays into DataFrames
+        # ----------------------------------------------------
+
+        events_df = pd.DataFrame(
+            request.events
+        )
+
+
+        if request.profiles:
+
+            profiles_df = pd.DataFrame(
+                request.profiles
+            )
+
+        else:
+
+            profiles_df = None
+
+
+        # ----------------------------------------------------
+        # Run the existing CyberGuard engine
+        # ----------------------------------------------------
 
         result = analyze_account_takeover(
             events=events_df,
-            profiles=profiles_df,
+            profiles=profiles_df
         )
 
-        return JSONResponse(
-            content={
-                "success": True,
-                "type": "account_takeover",
-                "result": clean_value(result),
-            }
-        )
 
-    except (ValueError, TypeError) as error:
+        # ----------------------------------------------------
+        # Convert pandas / timestamps / numpy values
+        # into JSON-safe values
+        # ----------------------------------------------------
+
+        def make_json_safe(value):
+
+            if isinstance(
+                value,
+                dict
+            ):
+
+                return {
+                    str(key):
+                    make_json_safe(val)
+
+                    for key, val
+                    in value.items()
+                }
+
+
+            if isinstance(
+                value,
+                list
+            ):
+
+                return [
+                    make_json_safe(item)
+                    for item in value
+                ]
+
+
+            if isinstance(
+                value,
+                tuple
+            ):
+
+                return [
+                    make_json_safe(item)
+                    for item in value
+                ]
+
+
+            if isinstance(
+                value,
+                pd.Timestamp
+            ):
+
+                return value.isoformat()
+
+
+            try:
+
+                if pd.isna(value):
+
+                    return None
+
+            except Exception:
+
+                pass
+
+
+            if hasattr(
+                value,
+                "item"
+            ):
+
+                try:
+
+                    return value.item()
+
+                except Exception:
+
+                    pass
+
+
+            return value
+
+
+        return {
+            "success": True,
+            "type": "account_takeover",
+            "result": make_json_safe(result)
+        }
+
+
+    except ValueError as error:
+
         raise HTTPException(
             status_code=400,
-            detail=str(error),
-        ) from error
+            detail=str(error)
+        )
+
+
+    except TypeError as error:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
 
     except Exception as error:
+
         print(
-            "CyberGuard Account Takeover API error:",
-            repr(error),
+            "Account Takeover API error:",
+            repr(error)
         )
 
         raise HTTPException(
             status_code=500,
-            detail="Account takeover analysis failed.",
-        ) from error
+            detail="Account takeover analysis failed."
+        )
