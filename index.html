@@ -296,9 +296,9 @@
 
                             </div>
 
-                            <span class="summary-badge soon-badge">
-                                SOON
-                            </span>
+                            <span class="summary-badge active-badge">
+                                 LIVE
+                             </span>
 
                         </div>
 
@@ -1626,74 +1626,134 @@
                     id="view-takeover"
                 >
 
-                    <div class="page-heading">
-
+                    <div class="page-heading phishing-heading">
                         <div>
-
-                            <div class="eyebrow">
-                                THREAT DETECTION / 02
-                            </div>
-
-                            <h2>
-                                Account Takeover Detection
-                            </h2>
-
+                            <div class="eyebrow">THREAT DETECTION / 02</div>
+                            <h2>Account Takeover Detection</h2>
                             <p>
-                                Detect abnormal authentication and
-                                account behaviour.
+                                Analyse authentication and session telemetry to identify abnormal account behaviour and potential takeover activity.
                             </p>
-
                         </div>
 
+                        <div class="engine-pill takeover-engine-pill">
+                            <span></span>
+                            ACCOUNT TAKEOVER ENGINE
+                        </div>
                     </div>
 
+                    <div class="takeover-layout">
+                        <div class="panel takeover-input-panel">
+                            <div class="panel-header">
+                                <div>
+                                    <span class="panel-kicker">TELEMETRY ANALYSIS</span>
+                                    <h3>Analyse organisation activity</h3>
+                                </div>
+                                <span class="input-counter" id="takeoverEventCount">0 events</span>
+                            </div>
 
-                    <div class="coming-soon">
+                            <div class="takeover-info">
+                                <span class="takeover-info-icon">i</span>
+                                <p>
+                                    Paste event telemetry as JSON. CyberGuard checks six takeover indicators: failed logins, password spraying, unusual locations, unknown devices, suspicious sessions and sudden behaviour changes.
+                                </p>
+                            </div>
 
-                        <div class="coming-icon">
-                            ◉
+                            <div class="field">
+                                <div class="field-label-row">
+                                    <label for="takeoverEventsInput">EVENT TELEMETRY — JSON ARRAY</label>
+                                    <button class="clear-button" id="clearTakeoverEvents" type="button">Clear</button>
+                                </div>
+                                <textarea id="takeoverEventsInput" class="takeover-json-input" spellcheck="false" placeholder='[{"timestamp":"2026-10-03T10:00:00","user_id":"user001","login_status":"failed","ip_address":"203.0.113.10","location":"Unknown City","device":"Chrome-Windows","session_action":"login_failed"}]'></textarea>
+                            </div>
+
+                            <div class="takeover-field-grid">
+                                <div class="field">
+                                    <label for="takeoverProfilesInput">OPTIONAL USER PROFILES — JSON ARRAY</label>
+                                    <textarea id="takeoverProfilesInput" class="takeover-profile-input" spellcheck="false" placeholder='[{"user_id":"user001","normal_locations":"Bhubaneswar","known_devices":"Chrome-Windows"}]'></textarea>
+                                </div>
+
+                                <div class="takeover-format-card">
+                                    <span class="panel-kicker">EXPECTED FIELDS</span>
+                                    <div class="takeover-field-tags">
+                                        <span>timestamp</span><span>user_id</span><span>login_status</span>
+                                        <span>ip_address</span><span>location</span><span>device</span><span>session_action</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="takeover-actions">
+                                <button class="secondary-button" id="loadTakeoverDemo" type="button">Load Demo Scenario</button>
+                                <button class="scan-button" id="analyzeTakeoverButton" type="button">
+                                    <span class="scan-button-icon">◉</span>
+                                    <span>Analyse Account Activity</span>
+                                    <span class="scan-arrow">→</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <span class="coming-label">
-                            MODULE IN DEVELOPMENT
-                        </span>
+                        <div class="panel takeover-result-panel">
+                            <div class="panel-header">
+                                <div>
+                                    <span class="panel-kicker">ANALYSIS RESULT</span>
+                                    <h3>Account Takeover Assessment</h3>
+                                </div>
+                                <span class="result-state" id="takeoverResultState">WAITING</span>
+                            </div>
 
-                        <h3>
-                            Behavioural Security Engine
-                        </h3>
+                            <div class="result-empty" id="takeoverResultEmpty">
+                                <div class="empty-icon">◉</div>
+                                <h4>No activity analysed</h4>
+                                <p>Provide organisation telemetry to generate an account takeover assessment.</p>
+                            </div>
 
-                        <p>
-                            This module will analyse failed login
-                            attempts, password spraying, unusual
-                            locations, unknown devices, suspicious
-                            sessions and sudden account behaviour
-                            changes.
-                        </p>
+                            <div class="takeover-result-content hidden" id="takeoverResultContent">
+                                <div class="takeover-summary-grid">
+                                    <div class="takeover-stat"><span>USERS ANALYSED</span><strong id="takeoverUsersAnalyzed">0</strong></div>
+                                    <div class="takeover-stat"><span>ACCOUNTS FLAGGED</span><strong id="takeoverAccountsFlagged">0</strong></div>
+                                    <div class="takeover-stat"><span>DETECTION EVENTS</span><strong id="takeoverDetectionEvents">0</strong></div>
+                                </div>
 
-                        <div class="planned-features">
+                                <div class="takeover-risk-overview">
+                                    <div class="takeover-risk-card high"><span>HIGH RISK</span><strong id="takeoverHighRisk">0</strong></div>
+                                    <div class="takeover-risk-card medium"><span>MEDIUM RISK</span><strong id="takeoverMediumRisk">0</strong></div>
+                                    <div class="takeover-risk-card low"><span>LOW RISK</span><strong id="takeoverLowRisk">0</strong></div>
+                                </div>
 
-                            <span>
-                                Failed logins
-                            </span>
+                                <div class="result-section takeover-accounts-section">
+                                    <div class="result-section-title">ACCOUNT RISK ASSESSMENTS</div>
+                                    <div class="takeover-account-list" id="takeoverAccountList"></div>
+                                </div>
 
-                            <span>
-                                Password spraying
-                            </span>
+                                <div class="result-section">
+                                    <div class="result-section-title">DETECTION EVENTS</div>
+                                    <div class="takeover-detection-list" id="takeoverDetectionList"></div>
+                                </div>
 
-                            <span>
-                                Location anomalies
-                            </span>
+                                <div class="user-guidance">
+                                    <div class="guidance-item">
+                                        <span class="guidance-icon">i</span>
+                                        <div><span class="guidance-label">WHAT THIS MEANS</span><p id="takeoverMeaning">The engine result will be explained here in plain language.</p></div>
+                                    </div>
+                                    <div class="guidance-item recommendation">
+                                        <span class="guidance-icon">→</span>
+                                        <div><span class="guidance-label">RECOMMENDED ACTION</span><p id="takeoverRecommendation">Review flagged accounts and investigate the underlying events.</p></div>
+                                    </div>
+                                </div>
 
-                            <span>
-                                Unknown devices
-                            </span>
-
-                            <span>
-                                Session anomalies
-                            </span>
-
+                                <div class="raw-result">
+                                    <button class="raw-toggle" type="button" data-target="takeoverRaw">View raw engine response <span>+</span></button>
+                                    <pre id="takeoverRaw" class="raw-content hidden"></pre>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
+                    <div class="scope-note takeover-scope-note">
+                        <div class="scope-note-icon">i</div>
+                        <div>
+                            <strong>Organisation telemetry stays the input</strong>
+                            <p>The module analyses event data supplied by the organisation. It does not require attack labels; it derives detections and risk from the telemetry.</p>
+                        </div>
                     </div>
 
                 </section>
